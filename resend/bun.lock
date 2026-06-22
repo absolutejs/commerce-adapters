@@ -5,7 +5,7 @@
     "": {
       "name": "@absolutejs/commerce-resend",
       "dependencies": {
-        "@absolutejs/commerce": "0.7.0-beta.0",
+        "@absolutejs/commerce": "0.8.0-beta.0",
         "resend": "^6.0.0",
       },
       "devDependencies": {
@@ -15,7 +15,7 @@
     },
   },
   "packages": {
-    "@absolutejs/commerce": ["@absolutejs/commerce@0.7.0-beta.0", "", { "peerDependencies": { "drizzle-orm": ">=0.30.0", "react": ">=18.0.0" }, "optionalPeers": ["drizzle-orm", "react"] }, "sha512-tCMCjNtNdDTiZCCaEa7QEVDR82HmFEOGhg5L+TQak+SBGqBa0aR5+Q0tPuHyU7kJgtZI38wlAn1dfhp8bdIKpw=="],
+    "@absolutejs/commerce": ["@absolutejs/commerce@0.8.0-beta.0", "", { "peerDependencies": { "drizzle-orm": ">=0.30.0", "react": ">=18.0.0" }, "optionalPeers": ["drizzle-orm", "react"] }, "sha512-77KWOW6LiMa/XzdNSWORwCT3CEnvW7NWaFiOsYESDdGFJFePBMzSDAKGWtgjWIy10RYciKxOobNbDbvUBtWzUw=="],
 
     "@stablelib/base64": ["@stablelib/base64@1.0.1", "", {}, "sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ=="],
 
