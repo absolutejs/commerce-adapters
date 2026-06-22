@@ -1,0 +1,43 @@
+{
+	"name": "@absolutejs/commerce-stripe",
+	"version": "0.7.0-beta.0",
+	"description": "Stripe payment + checkout adapter for @absolutejs/commerce",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/absolutejs/commerce-adapters.git",
+		"directory": "stripe"
+	},
+	"homepage": "https://github.com/absolutejs/commerce-adapters/tree/main/stripe",
+	"bugs": {
+		"url": "https://github.com/absolutejs/commerce-adapters/issues"
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"license": "Apache-2.0",
+	"author": "Alex Kahn",
+	"scripts": {
+		"build": "rm -rf dist && bun build ./src/index.ts --outdir dist --target bun --external @absolutejs/commerce --external stripe && tsc --emitDeclarationOnly --project tsconfig.json",
+		"format": "prettier --write \"./**/*.{js,ts,json,md}\"",
+		"release": "bun run build && bun publish --tag beta --access public",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@absolutejs/commerce": "0.7.0-beta.0",
+		"stripe": "^22.0.0"
+	},
+	"devDependencies": {
+		"@types/bun": "1.3.9",
+		"typescript": "^5.9.3"
+	}
+}
