@@ -5,7 +5,7 @@
     "": {
       "name": "@absolutejs/commerce-stripe",
       "dependencies": {
-        "@absolutejs/commerce": "0.15.0-beta.0",
+        "@absolutejs/commerce": "0.16.0-beta.0",
         "stripe": "^22.0.0",
       },
       "devDependencies": {
@@ -15,7 +15,7 @@
     },
   },
   "packages": {
-    "@absolutejs/commerce": ["@absolutejs/commerce@0.15.0-beta.0", "", { "peerDependencies": { "drizzle-orm": ">=0.30.0", "react": ">=18.0.0" }, "optionalPeers": ["drizzle-orm", "react"] }, "sha512-tvs9JK3x65spbaV0lKV7jXMvKqPVY4lbhCWO2PJD/ERmxOBkdYzOUXj3slFbPMqS8aHdbnELw0rVp+IbKLTZbw=="],
+    "@absolutejs/commerce": ["@absolutejs/commerce@0.16.0-beta.0", "", { "peerDependencies": { "drizzle-orm": ">=0.30.0", "react": ">=18.0.0" }, "optionalPeers": ["drizzle-orm", "react"] }, "sha512-lCacv/I02OcMYCmNcw9IWx+Ns9supGh2uh4Oa9rgBnYLeJbKHC/gctHjzq6L2Xr0H+mKFK8D3Vc2+mtoq3Fr1A=="],
 
     "@types/bun": ["@types/bun@1.3.9", "", { "dependencies": { "bun-types": "1.3.9" } }, "sha512-KQ571yULOdWJiMH+RIWIOZ7B2RXQGpL1YQrBtLIV3FqDcCu6FsbFUBwhdKUlCKUpS3PJDsHlJ1QKlpxoVR+xtw=="],
 
