@@ -76,6 +76,14 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
 
 	const createCheckout = async (input: CreateCheckoutInput) => {
 		const currency = input.currency ?? 'usd';
+		const subscription = input.mode === 'subscription';
+		const recurring = subscription
+			? {
+					recurring: {
+						interval: input.recurringInterval ?? 'month'
+					}
+				}
+			: {};
 		const lineItems = input.lineItems.map((line) => ({
 			price_data: {
 				currency,
@@ -84,7 +92,8 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
 					name: line.name
 				},
 				tax_behavior: line.taxBehavior,
-				unit_amount: line.amountCents
+				unit_amount: line.amountCents,
+				...recurring
 			},
 			quantity: line.quantity
 		}));
@@ -125,9 +134,9 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
 		const params: Stripe.Checkout.SessionCreateParams = {
 			line_items: lineItems,
 			metadata: input.metadata,
-			mode: 'payment',
+			mode: subscription ? 'subscription' : 'payment',
 			...(input.couponId ? { discounts: [{ coupon: input.couponId }] } : {}),
-			...shippingParams,
+			...(subscription ? {} : shippingParams),
 			...uiParams
 		};
 
