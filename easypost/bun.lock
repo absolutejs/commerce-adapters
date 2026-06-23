@@ -5,7 +5,7 @@
     "": {
       "name": "@absolutejs/commerce-easypost",
       "dependencies": {
-        "@absolutejs/commerce": "0.12.0-beta.0",
+        "@absolutejs/commerce": "0.13.0-beta.0",
         "@easypost/api": "^8.8.0",
       },
       "devDependencies": {
@@ -15,7 +15,7 @@
     },
   },
   "packages": {
-    "@absolutejs/commerce": ["@absolutejs/commerce@0.12.0-beta.0", "", { "peerDependencies": { "drizzle-orm": ">=0.30.0", "react": ">=18.0.0" }, "optionalPeers": ["drizzle-orm", "react"] }, "sha512-DzzxEkIoQuEGyr+TvZyg9RpqwMGxBp0ct/xK3pg4iV4b3qO+DJn3NUVqXa0FZ+5Q23jQefCtH4mEDHMwY0EmPQ=="],
+    "@absolutejs/commerce": ["@absolutejs/commerce@0.13.0-beta.0", "", { "peerDependencies": { "drizzle-orm": ">=0.30.0", "react": ">=18.0.0" }, "optionalPeers": ["drizzle-orm", "react"] }, "sha512-Mfilo0aqbSIkMv7/cAcndfzsmiE/qKAXG2x0QbhcPgndoHUGs6lrKNyHab3YhVNfnL/V/q8j8XFw5Lb39tT2jg=="],
 
     "@easypost/api": ["@easypost/api@8.8.0", "", { "dependencies": { "superagent": "~10.3.0", "uuid": "~11.1.0", "yargs": "~17.7.2", "yargs-parser": "~21.1.1" } }, "sha512-ecer46U7UFu1CvuYtGcACxCwXuP+qk6HPIbytieY44KX0KKYXx3Rzefn6453qkXvdxbTvNxM3IByKbtRHm937Q=="],
 
