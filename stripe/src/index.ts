@@ -203,6 +203,7 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
       const session = event.data.object as Stripe.Checkout.Session;
 
       return {
+        id: event.id,
         isComplete:
           event.type === "checkout.session.completed" ||
           event.type === "checkout.session.async_payment_succeeded",

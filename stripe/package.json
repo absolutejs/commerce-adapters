@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/commerce-stripe",
-  "version": "0.17.0-beta.0",
+  "version": "0.18.0-beta.0",
   "description": "Stripe payment + checkout adapter for @absolutejs/commerce",
   "repository": {
     "type": "git",
@@ -39,7 +39,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@absolutejs/commerce": "0.29.0-beta.0",
+    "@absolutejs/commerce": "0.30.0-beta.0",
     "@absolutejs/manifest": "^0.1.0",
     "@sinclair/typebox": "^0.34.0",
     "stripe": "^22.0.0"
