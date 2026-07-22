@@ -17,7 +17,7 @@ export const manifest = defineManifest<StripeConfig, PaymentProvider>()({
     accent: "#635bff",
     category: "commerce",
     description:
-      "Stripe-backed `PaymentProvider` for `@absolutejs/commerce`: hosted or embedded Checkout sessions, one-time coupons, refunds by session, and signed webhook verification — including subscription mode.",
+      "Stripe-backed `PaymentProvider` for `@absolutejs/commerce`: hosted or embedded Checkout sessions, one-time coupons, idempotent refunds, and signed checkout/dispute webhook normalization — including subscription mode.",
     docsUrl: "https://github.com/absolutejs/commerce-adapters/tree/main/stripe",
     name: "@absolutejs/commerce-stripe",
     tagline: "Take payments and host checkout with Stripe.",

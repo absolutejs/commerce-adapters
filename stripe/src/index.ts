@@ -3,8 +3,10 @@ import type {
   CheckoutSession,
   CreateCheckoutInput,
   CreateCouponInput,
+  PaymentDispute,
   PaymentProvider,
   PaymentRefund,
+  PaymentWebhookEvent,
   WebhookEvent,
 } from "@absolutejs/commerce";
 import Stripe from "stripe";
@@ -68,6 +70,10 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
       id: session.id,
       lineItems,
       metadata: (session.metadata ?? {}) as Record<string, string>,
+      paymentReferenceId:
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : (session.payment_intent?.id ?? null),
       paymentStatus: session.payment_status ?? null,
       shippingAddress: toAddress(details),
       status: session.status ?? null,
@@ -134,6 +140,9 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
       line_items: lineItems,
       metadata: input.metadata,
       mode: subscription ? "subscription" : "payment",
+      ...(subscription
+        ? {}
+        : { payment_intent_data: { metadata: input.metadata } }),
       ...(input.couponId ? { discounts: [{ coupon: input.couponId }] } : {}),
       ...(subscription ? {} : shippingParams),
       ...uiParams,
@@ -174,6 +183,76 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
           : "pending",
   });
 
+  const normalizeDispute = async (
+    dispute: Stripe.Dispute,
+  ): Promise<PaymentDispute> => {
+    let paymentReferenceId =
+      typeof dispute.payment_intent === "string"
+        ? dispute.payment_intent
+        : (dispute.payment_intent?.id ?? null);
+    if (!paymentReferenceId) {
+      const chargeId =
+        typeof dispute.charge === "string"
+          ? dispute.charge
+          : dispute.charge?.id;
+      if (chargeId) {
+        const charge = await stripe.charges.retrieve(chargeId);
+        paymentReferenceId =
+          typeof charge.payment_intent === "string"
+            ? charge.payment_intent
+            : (charge.payment_intent?.id ?? null);
+      }
+    }
+    if (!paymentReferenceId)
+      throw new Error("Stripe dispute has no payment intent identity");
+
+    return {
+      amountCents: dispute.amount,
+      currency: dispute.currency.toUpperCase(),
+      evidenceDueAt: dispute.evidence_details.due_by
+        ? new Date(dispute.evidence_details.due_by * 1_000)
+        : null,
+      providerDisputeId: dispute.id,
+      providerPaymentId: paymentReferenceId,
+      reason: dispute.reason,
+      status: dispute.status,
+    };
+  };
+
+  const verifyEvent = async (
+    payload: string,
+    signature: string,
+  ): Promise<PaymentWebhookEvent> => {
+    const event = await stripe.webhooks.constructEventAsync(
+      payload,
+      signature,
+      config.webhookSecret,
+    );
+    if (event.type.startsWith("charge.dispute."))
+      return {
+        dispute: await normalizeDispute(event.data.object as Stripe.Dispute),
+        id: event.id,
+        kind: "dispute",
+        type: event.type,
+      };
+    const session = event.data.object as Stripe.Checkout.Session;
+
+    return {
+      checkout: {
+        id: event.id,
+        isComplete:
+          event.type === "checkout.session.completed" ||
+          event.type === "checkout.session.async_payment_succeeded",
+        isFailed:
+          event.type === "checkout.session.async_payment_failed" ||
+          event.type === "checkout.session.expired",
+        session: await normalizeSession(session),
+        type: event.type,
+      },
+      kind: "checkout",
+    };
+  };
+
   return {
     createCheckout,
     async createCoupon(input: CreateCouponInput) {
@@ -212,28 +291,16 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
     async retrieveRefund(providerRefundId: string) {
       return normalizeRefund(await stripe.refunds.retrieve(providerRefundId));
     },
+    verifyEvent,
     async verifyWebhook(
       payload: string,
       signature: string,
     ): Promise<WebhookEvent> {
-      const event = await stripe.webhooks.constructEventAsync(
-        payload,
-        signature,
-        config.webhookSecret,
-      );
-      const session = event.data.object as Stripe.Checkout.Session;
+      const event = await verifyEvent(payload, signature);
+      if (event.kind !== "checkout")
+        throw new Error("Stripe event is not a Checkout lifecycle event");
 
-      return {
-        id: event.id,
-        isComplete:
-          event.type === "checkout.session.completed" ||
-          event.type === "checkout.session.async_payment_succeeded",
-        isFailed:
-          event.type === "checkout.session.async_payment_failed" ||
-          event.type === "checkout.session.expired",
-        session: await normalizeSession(session),
-        type: event.type,
-      };
+      return event.checkout;
     },
   };
 };

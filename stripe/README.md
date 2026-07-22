@@ -4,7 +4,9 @@
 [`@absolutejs/commerce`](https://github.com/absolutejs/commerce). Implements the
 `PaymentProvider` contract: create embedded **or** hosted checkout sessions
 (with shipping, discounts, and automatic tax + graceful fallback), mint one-off
-coupons, refund by session, and verify webhooks into a normalized event.
+coupons, idempotent refunds, and verify webhooks into normalized checkout and
+payment-dispute events. Disputes retain only provider-neutral identity, amount,
+reason, status, and evidence deadline for the commerce aftercare case substrate.
 
 ```ts
 import { createStripePayment } from "@absolutejs/commerce-stripe";
