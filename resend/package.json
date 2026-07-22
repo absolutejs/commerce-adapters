@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/commerce-resend",
-  "version": "0.19.18-beta.0",
+  "version": "0.19.19-beta.0",
   "description": "Resend transactional-email adapter for @absolutejs/commerce",
   "repository": {
     "type": "git",
@@ -40,7 +40,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@absolutejs/commerce": "0.40.0-beta.0",
+    "@absolutejs/commerce": "0.40.1-beta.0",
     "@absolutejs/manifest": "^0.1.0",
     "@sinclair/typebox": "^0.34.0",
     "resend": "^6.0.0"
