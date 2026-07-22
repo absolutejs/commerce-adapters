@@ -18,6 +18,29 @@ export type StripeConfig = {
 };
 
 const LINE_ITEM_LIMIT = 100;
+const STRIPE_DISPUTE_EVIDENCE_MAX_BYTES = 4_500_000;
+const STRIPE_DISPUTE_EVIDENCE_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+]);
+
+const validateDisputeFiles = (files: PaymentDisputeEvidenceFile[]) => {
+  if (
+    files.reduce((total, file) => total + file.bytes.length, 0) >
+    STRIPE_DISPUTE_EVIDENCE_MAX_BYTES
+  )
+    throw new Error(
+      "Stripe dispute evidence exceeds the 4.5 MB combined limit",
+    );
+  const unsupported = files.find(
+    ({ contentType }) => !STRIPE_DISPUTE_EVIDENCE_TYPES.has(contentType),
+  );
+  if (unsupported)
+    throw new Error(
+      `Stripe dispute evidence does not support ${unsupported.contentType}`,
+    );
+};
 
 const disputeTextEvidence = (
   evidence: Parameters<
@@ -336,6 +359,7 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
       return normalizeRefund(await stripe.refunds.retrieve(providerRefundId));
     },
     async submitDisputeEvidence(input) {
+      validateDisputeFiles(input.files);
       const providerFileIds: Record<string, string> = {};
       for (const file of input.files) {
         const uploaded = await stripe.files.create(
