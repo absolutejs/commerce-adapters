@@ -156,6 +156,56 @@ describe("CustomCat fulfillment", () => {
     expect(nextPage.nextCursor).toBeUndefined();
   });
 
+  it("normalizes provider taxonomy and browses every configured category", async () => {
+    const requests: string[] = [];
+    const catalog = createCustomCatCatalog({
+      apiKey: "test-key",
+      categories: "all",
+      fetch: async (input) => {
+        const url = String(input);
+        requests.push(url);
+        if (url.includes("/catalogcategory"))
+          return Response.json([
+            {
+              category: "Digisoft",
+              category_url_slug: "digisoft",
+              subcategories: ["T-Shirts"],
+            },
+            {
+              category: "Sublimation",
+              category_url_slug: "sublimation",
+              subcategories: ["Bags"],
+            },
+          ]);
+
+        return Response.json([]);
+      },
+    });
+
+    const taxonomy = await catalog.listTaxonomy();
+    const first = await catalog.listProducts({ limit: 10 });
+    const second = await catalog.listProducts({
+      cursor: first.nextCursor ?? undefined,
+      limit: 10,
+    });
+
+    expect(taxonomy).toContainEqual({
+      externalId: "category:digisoft:subcategory:t-shirts",
+      kind: "subcategory",
+      metadata: { category: "Digisoft" },
+      name: "T-Shirts",
+      parentExternalId: "category:digisoft",
+      slug: "t-shirts",
+    });
+    expect(second.items).toEqual([]);
+    expect(
+      requests.some((url) => url.includes("category=Digisoft")),
+    ).toBeTrue();
+    expect(
+      requests.some((url) => url.includes("category=Sublimation")),
+    ).toBeTrue();
+  });
+
   it("declares an exact mandate-bound spending adapter", () => {
     expect(customCatEffectAdapterDescriptor).toMatchObject({
       adapterId: CUSTOMCAT_EFFECT_ADAPTER_ID,

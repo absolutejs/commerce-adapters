@@ -28,6 +28,9 @@ The same provider exposes paginated free-text catalog search and destination-
 aware shipping-method discovery. CustomCat does not expose server-side catalog
 search, so a search walks its paginated catalog before returning normalized
 matches; ordinary browsing remains a single provider page request.
+Set `categories: "all"` to discover CustomCat's category/subcategory taxonomy
+and traverse every returned category with opaque cursors instead of hardcoding
+its current category list.
 
 The adapter uses CustomCat's external-design workflow: every line supplies an
 exact `catalog_sku` plus a public PNG/JPG artwork URL. Front and back artwork

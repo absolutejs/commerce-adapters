@@ -2,6 +2,7 @@ import type {
   CatalogPage,
   CatalogProduct,
   CatalogSourceProvider,
+  CatalogTaxon,
   FulfillmentCostQuote,
   FulfillmentCostQuoteProvider,
   FulfillmentCostQuoteRequest,
@@ -29,12 +30,15 @@ const MAX_CATALOG_SEARCH_PAGES = 100;
 
 export type CustomCatCatalogConfig = CustomCatHttpConfig & {
   category?: string;
+  categories?: "all" | string[];
   subcategory?: string;
 };
 
 export type CustomCatCatalogProvider = CatalogSourceProvider &
   FulfillmentCostQuoteProvider &
-  FulfillmentShippingMethodProvider;
+  FulfillmentShippingMethodProvider & {
+    listTaxonomy(): Promise<CatalogTaxon[]>;
+  };
 
 const normalizedKey = (value: string) =>
   value.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -225,9 +229,71 @@ export const createCustomCatCatalog = (
   config: CustomCatCatalogConfig,
 ): CustomCatCatalogProvider => {
   const request = createCustomCatRequest(config);
-  const catalogPage = async (page: number, limit: number) => {
+  let taxonomyRequest: Promise<CatalogTaxon[]> | undefined;
+  const taxonomy = () => {
+    taxonomyRequest ??= request("/catalogcategory", undefined, true).then(
+      (payload) =>
+        records(payload, "categories", "catalogcategory", "data").flatMap(
+          (category) => {
+            const name = stringValue(
+              field(category, "category", "name"),
+            ).trim();
+            const slug =
+              stringValue(
+                field(category, "category_url_slug", "slug"),
+              ).trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+            if (!name || !slug) return [];
+            const categoryId = `category:${slug}`;
+            const categoryTaxon: CatalogTaxon = {
+              externalId: categoryId,
+              kind: "category",
+              metadata: {},
+              name,
+              slug,
+            };
+            const subcategories = field(category, "subcategories");
+            const children = Array.isArray(subcategories)
+              ? subcategories.flatMap((subcategory) => {
+                  const childName = stringValue(subcategory).trim();
+                  if (!childName) return [];
+                  const childSlug = childName
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/(^-|-$)/g, "");
+
+                  return [
+                    {
+                      externalId: `${categoryId}:subcategory:${childSlug}`,
+                      kind: "subcategory" as const,
+                      metadata: { category: name },
+                      name: childName,
+                      parentExternalId: categoryId,
+                      slug: childSlug,
+                    },
+                  ];
+                })
+              : [];
+
+            return [categoryTaxon, ...children];
+          },
+        ),
+    );
+
+    return taxonomyRequest;
+  };
+  const categories = async () => {
+    if (config.categories === "all")
+      return (await taxonomy())
+        .filter(({ kind }) => kind === "category")
+        .map(({ name }) => name);
+    if (Array.isArray(config.categories) && config.categories.length > 0)
+      return config.categories;
+
+    return [config.category ?? DEFAULT_CATEGORY];
+  };
+  const catalogPage = async (category: string, page: number, limit: number) => {
     const query = new URLSearchParams({
-      category: config.category ?? DEFAULT_CATEGORY,
+      category,
       limit: String(limit),
       page: String(page),
       ...(config.subcategory ? { subcategory: config.subcategory } : {}),
@@ -309,6 +375,7 @@ export const createCustomCatCatalog = (
       return candidate ? productFrom(candidate) : null;
     },
     id: "customcat",
+    listTaxonomy: taxonomy,
     listShippingMethods: async (order) =>
       (await shippingMethods(order)).map(
         ({ carrier, description, id, name }) => ({
@@ -329,16 +396,24 @@ export const createCustomCatCatalog = (
       const search = input.search?.trim() ?? "";
       if (search) {
         const products: ReturnType<typeof productFrom>[] = [];
-        let providerPage = 1;
-        while (true) {
-          const page = await catalogPage(providerPage, MAX_CATALOG_LIMIT);
-          products.push(...page.filter((item) => productMatches(item, search)));
-          if (page.length < MAX_CATALOG_LIMIT) break;
-          if (providerPage >= MAX_CATALOG_SEARCH_PAGES)
-            throw new Error(
-              "CustomCat catalog search exceeded its defensive page limit",
+        for (const category of await categories()) {
+          let providerPage = 1;
+          while (true) {
+            const page = await catalogPage(
+              category,
+              providerPage,
+              MAX_CATALOG_LIMIT,
             );
-          providerPage += 1;
+            products.push(
+              ...page.filter((item) => productMatches(item, search)),
+            );
+            if (page.length < MAX_CATALOG_LIMIT) break;
+            if (providerPage >= MAX_CATALOG_SEARCH_PAGES)
+              throw new Error(
+                "CustomCat catalog search exceeded its defensive page limit",
+              );
+            providerPage += 1;
+          }
         }
         const offset = cursor - 1;
         const items = products.slice(offset, offset + limit);
@@ -350,11 +425,29 @@ export const createCustomCatCatalog = (
             : {}),
         };
       }
-      const items = await catalogPage(cursor, limit);
+      const availableCategories = await categories();
+      const cursorParts = (input.cursor ?? "").split(":");
+      const categoryIndex = Math.max(
+        cursorParts.length > 1 ? Number(cursorParts[0]) || 0 : 0,
+        0,
+      );
+      const providerPage = Math.max(
+        cursorParts.length > 1 ? Number(cursorParts[1]) || 1 : cursor,
+        1,
+      );
+      const category = availableCategories[categoryIndex];
+      if (!category) return { items: [] };
+      const items = await catalogPage(category, providerPage, limit);
+      const nextCursor =
+        items.length < limit
+          ? categoryIndex + 1 < availableCategories.length
+            ? `${categoryIndex + 1}:1`
+            : undefined
+          : `${categoryIndex}:${providerPage + 1}`;
 
       return {
         items,
-        ...(items.length < limit ? {} : { nextCursor: String(cursor + 1) }),
+        ...(nextCursor ? { nextCursor } : {}),
       };
     },
     quoteOrder: async (order): Promise<FulfillmentCostQuote> => {
