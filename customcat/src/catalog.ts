@@ -5,6 +5,9 @@ import type {
   FulfillmentCostQuote,
   FulfillmentCostQuoteProvider,
   FulfillmentCostQuoteRequest,
+  FulfillmentShippingMethod,
+  FulfillmentShippingMethodProvider,
+  FulfillmentShippingMethodRequest,
   InventoryLevel,
   ProductMedia,
   ProductVariant,
@@ -22,6 +25,7 @@ const DEFAULT_CATALOG_LIMIT = 25;
 const DEFAULT_CATEGORY = "Digisoft";
 const DEFAULT_SHIPPING_METHOD = "Economy";
 const MAX_CATALOG_LIMIT = 250;
+const MAX_CATALOG_SEARCH_PAGES = 100;
 
 export type CustomCatCatalogConfig = CustomCatHttpConfig & {
   category?: string;
@@ -29,7 +33,8 @@ export type CustomCatCatalogConfig = CustomCatHttpConfig & {
 };
 
 export type CustomCatCatalogProvider = CatalogSourceProvider &
-  FulfillmentCostQuoteProvider;
+  FulfillmentCostQuoteProvider &
+  FulfillmentShippingMethodProvider;
 
 const normalizedKey = (value: string) =>
   value.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -188,10 +193,85 @@ const quoteItem = (line: FulfillmentCostQuoteRequest["lines"][number]) => ({
   quantity: line.quantity,
 });
 
+type CustomCatShippingMethod = FulfillmentShippingMethod & {
+  quoteId: string;
+};
+
+const productMatches = (
+  item: ReturnType<typeof productFrom>,
+  search: string,
+) => {
+  const wanted = search.trim().toLowerCase();
+  if (!wanted) return true;
+  const values = [
+    item.product.title,
+    item.product.description,
+    item.product.category,
+    item.product.productType,
+    item.product.styleCode,
+    item.product.externalId,
+    ...item.product.tags,
+    ...item.variants.flatMap((variant) => [
+      variant.sku,
+      variant.supplierSku,
+      ...Object.values(variant.options),
+    ]),
+  ];
+
+  return values.some((value) => value?.toLowerCase().includes(wanted));
+};
+
 export const createCustomCatCatalog = (
   config: CustomCatCatalogConfig,
 ): CustomCatCatalogProvider => {
   const request = createCustomCatRequest(config);
+  const catalogPage = async (page: number, limit: number) => {
+    const query = new URLSearchParams({
+      category: config.category ?? DEFAULT_CATEGORY,
+      limit: String(limit),
+      page: String(page),
+      ...(config.subcategory ? { subcategory: config.subcategory } : {}),
+    });
+    const payload = await request(`/catalog?${query}`, undefined, true);
+
+    return records(payload, "products", "catalog", "data").map(productFrom);
+  };
+  const shippingMethods = async (
+    order: FulfillmentShippingMethodRequest,
+  ): Promise<CustomCatShippingMethod[]> => {
+    const query = new URLSearchParams({
+      country_code: order.recipient.country,
+    });
+    const payload = await request(`/shipping?${query}`, undefined, true);
+
+    return records(
+      payload,
+      "shipping",
+      "shipping_methods",
+      "methods",
+      "data",
+    ).flatMap((method) => {
+      const quoteId = stringValue(field(method, "shipping_id", "id")).trim();
+      const name = stringValue(
+        field(method, "shipping_method", "method", "name", "title"),
+      ).trim();
+      if (!quoteId || !name) return [];
+      const description = stringValue(
+        field(method, "description", "details"),
+      ).trim();
+      const carrier = stringValue(field(method, "carrier")).trim();
+
+      return [
+        {
+          ...(carrier ? { carrier } : {}),
+          ...(description ? { description } : {}),
+          id: name,
+          name,
+          quoteId,
+        },
+      ];
+    });
+  };
   const getSku = async (sku: string) => {
     const payload = await request(
       `/catalog/sku/${encodeURIComponent(sku)}`,
@@ -229,6 +309,15 @@ export const createCustomCatCatalog = (
       return candidate ? productFrom(candidate) : null;
     },
     id: "customcat",
+    listShippingMethods: async (order) =>
+      (await shippingMethods(order)).map(
+        ({ carrier, description, id, name }) => ({
+          ...(carrier ? { carrier } : {}),
+          ...(description ? { description } : {}),
+          id,
+          name,
+        }),
+      ),
     listProducts: async (
       input = {},
     ): Promise<CatalogPage<ReturnType<typeof productFrom>>> => {
@@ -236,21 +325,36 @@ export const createCustomCatCatalog = (
         Math.max(input.limit ?? DEFAULT_CATALOG_LIMIT, 1),
         MAX_CATALOG_LIMIT,
       );
-      const page = Math.max(Number(input.cursor ?? "1") || 1, 1);
-      const query = new URLSearchParams({
-        category: config.category ?? DEFAULT_CATEGORY,
-        limit: String(limit),
-        page: String(page),
-        ...(config.subcategory ? { subcategory: config.subcategory } : {}),
-      });
-      const payload = await request(`/catalog?${query}`, undefined, true);
-      const items = records(payload, "products", "catalog", "data").map(
-        productFrom,
-      );
+      const cursor = Math.max(Number(input.cursor ?? "1") || 1, 1);
+      const search = input.search?.trim() ?? "";
+      if (search) {
+        const products: ReturnType<typeof productFrom>[] = [];
+        let providerPage = 1;
+        while (true) {
+          const page = await catalogPage(providerPage, MAX_CATALOG_LIMIT);
+          products.push(...page.filter((item) => productMatches(item, search)));
+          if (page.length < MAX_CATALOG_LIMIT) break;
+          if (providerPage >= MAX_CATALOG_SEARCH_PAGES)
+            throw new Error(
+              "CustomCat catalog search exceeded its defensive page limit",
+            );
+          providerPage += 1;
+        }
+        const offset = cursor - 1;
+        const items = products.slice(offset, offset + limit);
+
+        return {
+          items,
+          ...(offset + items.length < products.length
+            ? { nextCursor: String(offset + items.length + 1) }
+            : {}),
+        };
+      }
+      const items = await catalogPage(cursor, limit);
 
       return {
         items,
-        ...(items.length < limit ? {} : { nextCursor: String(page + 1) }),
+        ...(items.length < limit ? {} : { nextCursor: String(cursor + 1) }),
       };
     },
     quoteOrder: async (order): Promise<FulfillmentCostQuote> => {
@@ -291,36 +395,19 @@ export const createCustomCatCatalog = (
         0,
       );
       const adjustmentsCents = secondSidePrintCount * BACK_PRINT_CENTS;
-      const shippingPayload = await request("/shipping", undefined, true);
-      const methods = records(
-        shippingPayload,
-        "shipping",
-        "shipping_methods",
-        "methods",
-        "data",
-      );
+      const methods = await shippingMethods(order);
       const wantedMethod = order.shippingMethod ?? DEFAULT_SHIPPING_METHOD;
       const shipping = methods.find((method) => {
-        const id = stringValue(field(method, "shipping_id", "id")).trim();
-        const name = stringValue(
-          field(method, "shipping_method", "method", "name", "title"),
-        ).trim();
-
         return (
-          id === wantedMethod ||
-          name.toLowerCase() === wantedMethod.trim().toLowerCase()
+          method.id === wantedMethod ||
+          method.name.toLowerCase() === wantedMethod.trim().toLowerCase()
         );
       });
       if (!shipping)
         throw new Error(
           `CustomCat shipping method is unavailable: ${wantedMethod}`,
         );
-      const shippingId = stringValue(
-        field(shipping, "shipping_id", "id"),
-      ).trim();
-      if (!shippingId)
-        throw new Error("CustomCat shipping method has no provider identity");
-      const shippingQuote = await request(`/shipping/${shippingId}`, {
+      const shippingQuote = await request(`/shipping/${shipping.quoteId}`, {
         body: JSON.stringify({
           api_key: config.apiKey,
           country_code: order.recipient.country,

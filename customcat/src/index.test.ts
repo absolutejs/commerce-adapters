@@ -91,6 +91,11 @@ describe("CustomCat fulfillment", () => {
         },
       ],
     });
+    const shippingMethods = await catalog.listShippingMethods({
+      lines: order.lines,
+      recipient: order.recipient,
+    });
+    expect(shippingMethods).toEqual([{ id: "Economy", name: "Economy" }]);
     const quote = await catalog.quoteOrder({
       lines: [{ ...order.lines[0]!, quantity: 2 }],
       recipient: order.recipient,
@@ -105,10 +110,50 @@ describe("CustomCat fulfillment", () => {
     });
     expect(requests).toEqual([
       "GET https://customcat-beta.mylocker.net/api/v1/catalog?category=Digisoft&limit=10&page=1&api_key=test-key",
+      "GET https://customcat-beta.mylocker.net/api/v1/shipping?country_code=US&api_key=test-key",
       "GET https://customcat-beta.mylocker.net/api/v1/catalog/sku/48146?api_key=test-key",
-      "GET https://customcat-beta.mylocker.net/api/v1/shipping?api_key=test-key",
+      "GET https://customcat-beta.mylocker.net/api/v1/shipping?country_code=US&api_key=test-key",
       "POST https://customcat-beta.mylocker.net/api/v1/shipping/1",
     ]);
+  });
+
+  it("searches the complete provider catalog before paginating matches", async () => {
+    const products = [
+      {
+        catalog_product_id: 101,
+        category: "Digisoft",
+        product_type: "T-Shirts",
+        title: "Everyday Tee",
+        variants: [{ catalog_sku: "TEE-1", instock: true }],
+      },
+      {
+        catalog_product_id: 102,
+        category: "Digisoft",
+        product_type: "Mugs",
+        title: "Tee Camp Mug",
+        variants: [{ catalog_sku: "MUG-1", instock: true }],
+      },
+    ];
+    const catalog = createCustomCatCatalog({
+      apiKey: "test-key",
+      fetch: async () => Response.json(products),
+    });
+
+    const page = await catalog.listProducts({ limit: 1, search: "tee" });
+
+    expect(page.items.map(({ product }) => product.title)).toEqual([
+      "Everyday Tee",
+    ]);
+    expect(page.nextCursor).toBe("2");
+    const nextPage = await catalog.listProducts({
+      cursor: page.nextCursor ?? undefined,
+      limit: 1,
+      search: "tee",
+    });
+    expect(nextPage.items.map(({ product }) => product.title)).toEqual([
+      "Tee Camp Mug",
+    ]);
+    expect(nextPage.nextCursor).toBeUndefined();
   });
 
   it("declares an exact mandate-bound spending adapter", () => {

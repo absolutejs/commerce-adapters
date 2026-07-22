@@ -24,6 +24,10 @@ availability, and read-only fulfillment cost preflight. Preflight refreshes the
 selected SKUs and shipping cost, includes CustomCat's documented back-print
 adjustment, and returns item/shipping/adjustment totals. It does not reserve
 inventory or price; refresh it immediately before creating spend authority.
+The same provider exposes paginated free-text catalog search and destination-
+aware shipping-method discovery. CustomCat does not expose server-side catalog
+search, so a search walks its paginated catalog before returning normalized
+matches; ordinary browsing remains a single provider page request.
 
 The adapter uses CustomCat's external-design workflow: every line supplies an
 exact `catalog_sku` plus a public PNG/JPG artwork URL. Front and back artwork
