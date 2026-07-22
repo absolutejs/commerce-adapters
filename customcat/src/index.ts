@@ -15,12 +15,20 @@ import {
   type EffectAdapterDriverContext,
   type EffectAdapterQueryDriver,
 } from "@absolutejs/execution";
+import {
+  createCustomCatRequest,
+  record,
+  stringValue,
+  type JsonRecord,
+} from "./client";
+import {
+  CUSTOMCAT_EFFECT_ADAPTER_ID,
+  CUSTOMCAT_EFFECT_API_DESTINATION,
+  CUSTOMCAT_FULFILLMENT_EFFECT,
+} from "./constants";
 
-const DEFAULT_BASE_URL = "https://customcat-beta.mylocker.net/api/v1";
-export const CUSTOMCAT_EFFECT_ADAPTER_ID = "absolutejs.commerce-customcat";
-export const CUSTOMCAT_EFFECT_API_DESTINATION =
-  "https://customcat-beta.mylocker.net";
-export const CUSTOMCAT_FULFILLMENT_EFFECT = "fulfillment.submit";
+export * from "./catalog";
+export * from "./constants";
 
 export const customCatEffectAdapterDescriptor: EffectAdapterDescriptor = {
   adapterId: CUSTOMCAT_EFFECT_ADAPTER_ID,
@@ -58,7 +66,7 @@ export const customCatEffectAdapterDescriptor: EffectAdapterDescriptor = {
     requiresMandate: true,
   },
   title: "CustomCat fulfillment order",
-  version: "0.2.0",
+  version: "0.3.0",
 };
 
 export type CustomCatConfig = {
@@ -69,11 +77,6 @@ export type CustomCatConfig = {
   /** Injectable for tests, proxies, and edge runtimes. */
   fetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 };
-
-type JsonRecord = Record<string, unknown>;
-
-const stringValue = (value: unknown) =>
-  typeof value === "string" || typeof value === "number" ? String(value) : "";
 
 const customCatStatus = (value: unknown): FulfillmentStatus => {
   const status = stringValue(value).trim().toLowerCase();
@@ -182,38 +185,7 @@ const normalizeOrder = (
 export const createCustomCatFulfillment = (
   config: CustomCatConfig,
 ): FulfillmentProvider => {
-  if (!config.apiKey.trim()) throw new Error("CustomCat API key is required");
-  const fetcher = config.fetch ?? globalThis.fetch;
-  const baseUrl = (config.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, "");
-
-  const request = async (
-    path: string,
-    init?: RequestInit,
-    includeKeyInQuery = false,
-  ): Promise<JsonRecord> => {
-    const url = new URL(`${baseUrl}${path}`);
-    if (includeKeyInQuery) url.searchParams.set("api_key", config.apiKey);
-    const response = await fetcher(url, init);
-    const text = await response.text();
-    let payload: JsonRecord = {};
-    try {
-      const parsed = text ? JSON.parse(text) : {};
-      payload =
-        parsed && typeof parsed === "object"
-          ? (parsed as JsonRecord)
-          : { result: parsed };
-    } catch {
-      payload = { result: text };
-    }
-    if (!response.ok || payload.error || payload.error_description)
-      throw new Error(
-        stringValue(
-          payload.error_description ?? payload.error ?? payload.message,
-        ) || `CustomCat request failed (${response.status})`,
-      );
-
-    return payload;
-  };
+  const request = createCustomCatRequest(config);
 
   return {
     cancelOrder: async (providerOrderId) => {
@@ -223,6 +195,9 @@ export const createCustomCatFulfillment = (
         true,
       );
 
+      if (!record(payload))
+        throw new Error("CustomCat order response is malformed");
+
       return normalizeOrder(payload, providerOrderId);
     },
     getOrder: async (providerOrderId) => {
@@ -231,6 +206,9 @@ export const createCustomCatFulfillment = (
         undefined,
         true,
       );
+
+      if (!record(payload))
+        throw new Error("CustomCat order response is malformed");
 
       return normalizeOrder(payload, providerOrderId);
     },
@@ -309,6 +287,9 @@ export const createCustomCatFulfillment = (
           method: "POST",
         },
       );
+
+      if (!record(payload))
+        throw new Error("CustomCat order response is malformed");
 
       return normalizeOrder(payload, order.externalOrderId);
     },

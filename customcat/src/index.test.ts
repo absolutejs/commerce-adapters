@@ -5,6 +5,7 @@ import {
   type EffectAdapterDriverContext,
 } from "@absolutejs/execution";
 import {
+  createCustomCatCatalog,
   createCustomCatEffectAdapterDriver,
   createCustomCatEffectQueryDriver,
   createCustomCatFulfillment,
@@ -43,6 +44,73 @@ const order: FulfillmentOrderRequest = {
 };
 
 describe("CustomCat fulfillment", () => {
+  it("normalizes catalog products and preflights exact fulfillment cost", async () => {
+    const catalogProduct = {
+      catalog_product_id: 101,
+      category: "Digisoft",
+      product_type: "T-Shirts",
+      title: "Everyday Tee",
+      variants: [
+        {
+          catalog_sku: "48146",
+          color: "Black",
+          cost: "6.25",
+          instock: "true",
+          size: "Large",
+        },
+      ],
+    };
+    const requests: string[] = [];
+    const catalog = createCustomCatCatalog({
+      apiKey: "test-key",
+      fetch: async (input, init) => {
+        const url = String(input);
+        requests.push(`${init?.method ?? "GET"} ${url}`);
+        if (url.includes("/catalog/sku/")) return Response.json(catalogProduct);
+        if (url.includes("/shipping/"))
+          return Response.json({ shipping_cost: "4.50" });
+        if (url.includes("/shipping"))
+          return Response.json([{ name: "Economy", shipping_id: 1 }]);
+
+        return Response.json([catalogProduct]);
+      },
+    });
+    const page = await catalog.listProducts({ limit: 10 });
+    expect(page.items[0]).toMatchObject({
+      product: {
+        externalId: "101",
+        productType: "T-Shirts",
+        title: "Everyday Tee",
+      },
+      variants: [
+        {
+          available: true,
+          costCents: 625,
+          options: { Color: "Black", Size: "Large" },
+          supplierSku: "48146",
+        },
+      ],
+    });
+    const quote = await catalog.quoteOrder({
+      lines: [{ ...order.lines[0]!, quantity: 2 }],
+      recipient: order.recipient,
+      shippingMethod: "Economy",
+    });
+    expect(quote).toMatchObject({
+      adjustmentsCents: 1_000,
+      currency: "USD",
+      itemsCents: 1_250,
+      shippingCents: 450,
+      totalCents: 2_700,
+    });
+    expect(requests).toEqual([
+      "GET https://customcat-beta.mylocker.net/api/v1/catalog?category=Digisoft&limit=10&page=1&api_key=test-key",
+      "GET https://customcat-beta.mylocker.net/api/v1/catalog/sku/48146?api_key=test-key",
+      "GET https://customcat-beta.mylocker.net/api/v1/shipping?api_key=test-key",
+      "POST https://customcat-beta.mylocker.net/api/v1/shipping/1",
+    ]);
+  });
+
   it("declares an exact mandate-bound spending adapter", () => {
     expect(customCatEffectAdapterDescriptor).toMatchObject({
       adapterId: CUSTOMCAT_EFFECT_ADAPTER_ID,

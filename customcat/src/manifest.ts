@@ -1,6 +1,7 @@
 import { defineImplementation, defineManifest } from "@absolutejs/manifest";
 import type { FulfillmentProvider } from "@absolutejs/commerce";
 import { Type } from "@sinclair/typebox";
+import type { CustomCatCatalogConfig } from "./catalog";
 import type { CustomCatConfig } from "./index";
 
 export const manifest = defineManifest<CustomCatConfig, FulfillmentProvider>()({
@@ -8,6 +9,7 @@ export const manifest = defineManifest<CustomCatConfig, FulfillmentProvider>()({
   discovery: {
     audiences: ["agent-hosts", "commerce-platforms", "application-developers"],
     intents: [
+      "browse and price the CustomCat fulfillment catalog",
       "submit a print-on-demand fulfillment order",
       "execute a mandate-bound CustomCat purchase",
       "reconcile or compensate a CustomCat order",
@@ -32,6 +34,44 @@ export const manifest = defineManifest<CustomCatConfig, FulfillmentProvider>()({
     tagline: "Print and drop-ship commerce orders with CustomCat.",
   },
   implements: [
+    defineImplementation<CustomCatCatalogConfig>()({
+      contract: "commerce/catalog-source-provider",
+      factory: "createCustomCatCatalog",
+      from: "@absolutejs/commerce-customcat",
+      requires: {
+        env: [
+          {
+            description: "CustomCat API Store read/write key",
+            docsUrl: "https://help.customcat.com/generate-an-api-key",
+            key: "CUSTOMCAT_API_KEY",
+            secret: true,
+          },
+        ],
+      },
+      settings: Type.Object({
+        category: Type.Optional(
+          Type.String({
+            default: "Digisoft",
+            description: "CustomCat catalog decoration category.",
+          }),
+        ),
+        subcategory: Type.Optional(
+          Type.String({
+            description: "Optional CustomCat product type filter.",
+          }),
+        ),
+      }),
+      title: "CustomCat catalog and fulfillment cost preflight",
+      wiring: {
+        code: 'createCustomCatCatalog({ apiKey: ${env.CUSTOMCAT_API_KEY} ?? "", ...${settings} })',
+        imports: [
+          {
+            from: "@absolutejs/commerce-customcat",
+            names: ["createCustomCatCatalog"],
+          },
+        ],
+      },
+    }),
     defineImplementation<CustomCatConfig>()({
       contract: "commerce/fulfillment-provider",
       factory: "createCustomCatFulfillment",

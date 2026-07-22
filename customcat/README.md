@@ -4,20 +4,26 @@ CustomCat print-on-demand fulfillment adapter for
 [`@absolutejs/commerce`](https://github.com/absolutejs/commerce).
 
 ```ts
-import { createCustomCatFulfillment } from '@absolutejs/commerce-customcat';
+import { createCustomCatFulfillment } from "@absolutejs/commerce-customcat";
 
 const fulfillment = createCustomCatFulfillment({
-	apiKey: process.env.CUSTOMCAT_API_KEY!,
-	sandbox: true
+  apiKey: process.env.CUSTOMCAT_API_KEY!,
+  sandbox: true,
 });
 
 await fulfillment.submitOrder({
-	externalOrderId: 'ORDER-1001',
-	recipient,
-	lines,
-	shippingMethod: 'Economy'
+  externalOrderId: "ORDER-1001",
+  recipient,
+  lines,
+  shippingMethod: "Economy",
 });
 ```
+
+Use `createCustomCatCatalog()` for normalized catalog browsing, live SKU
+availability, and read-only fulfillment cost preflight. Preflight refreshes the
+selected SKUs and shipping cost, includes CustomCat's documented back-print
+adjustment, and returns item/shipping/adjustment totals. It does not reserve
+inventory or price; refresh it immediately before creating spend authority.
 
 The adapter uses CustomCat's external-design workflow: every line supplies an
 exact `catalog_sku` plus a public PNG/JPG artwork URL. Front and back artwork
