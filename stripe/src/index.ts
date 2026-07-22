@@ -19,6 +19,7 @@ export type StripeConfig = {
 
 const LINE_ITEM_LIMIT = 100;
 const STRIPE_DISPUTE_EVIDENCE_MAX_BYTES = 4_500_000;
+const STRIPE_DISPUTE_EVIDENCE_MAX_TEXT_LENGTH = 150_000;
 const STRIPE_DISPUTE_EVIDENCE_TYPES = new Set([
   "application/pdf",
   "image/jpeg",
@@ -39,6 +40,21 @@ const validateDisputeFiles = (files: PaymentDisputeEvidenceFile[]) => {
   if (unsupported)
     throw new Error(
       `Stripe dispute evidence does not support ${unsupported.contentType}`,
+    );
+};
+
+const validateDisputeText = (
+  evidence: Parameters<
+    NonNullable<PaymentProvider["submitDisputeEvidence"]>
+  >[0]["evidence"],
+) => {
+  const length = Object.values(evidence).reduce(
+    (total, value) => total + (value?.length ?? 0),
+    0,
+  );
+  if (length > STRIPE_DISPUTE_EVIDENCE_MAX_TEXT_LENGTH)
+    throw new Error(
+      "Stripe dispute evidence exceeds the 150,000-character combined text limit",
     );
 };
 
@@ -360,6 +376,7 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
     },
     async submitDisputeEvidence(input) {
       validateDisputeFiles(input.files);
+      validateDisputeText(input.evidence);
       const providerFileIds: Record<string, string> = {};
       for (const file of input.files) {
         const uploaded = await stripe.files.create(
