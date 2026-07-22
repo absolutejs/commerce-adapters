@@ -10,9 +10,9 @@
     },
     "customcat": {
       "name": "@absolutejs/commerce-customcat",
-      "version": "0.5.10-beta.0",
+      "version": "0.6.0-beta.0",
       "dependencies": {
-        "@absolutejs/commerce": "0.31.2-beta.0",
+        "@absolutejs/commerce": "0.32.0-beta.0",
         "@absolutejs/execution": "0.14.2",
         "@absolutejs/manifest": "^0.3.0",
         "@sinclair/typebox": "^0.34.0",
@@ -24,9 +24,9 @@
     },
     "easypost": {
       "name": "@absolutejs/commerce-easypost",
-      "version": "0.18.5-beta.0",
+      "version": "0.19.0-beta.0",
       "dependencies": {
-        "@absolutejs/commerce": "0.31.2-beta.0",
+        "@absolutejs/commerce": "0.32.0-beta.0",
         "@absolutejs/manifest": "^0.1.0",
         "@easypost/api": "^8.8.0",
         "@sinclair/typebox": "^0.34.0",
@@ -38,9 +38,9 @@
     },
     "resend": {
       "name": "@absolutejs/commerce-resend",
-      "version": "0.18.5-beta.0",
+      "version": "0.19.0-beta.0",
       "dependencies": {
-        "@absolutejs/commerce": "0.31.2-beta.0",
+        "@absolutejs/commerce": "0.32.0-beta.0",
         "@absolutejs/manifest": "^0.1.0",
         "@sinclair/typebox": "^0.34.0",
         "resend": "^6.0.0",
@@ -52,9 +52,9 @@
     },
     "stripe": {
       "name": "@absolutejs/commerce-stripe",
-      "version": "0.18.5-beta.0",
+      "version": "0.19.0-beta.0",
       "dependencies": {
-        "@absolutejs/commerce": "0.31.2-beta.0",
+        "@absolutejs/commerce": "0.32.0-beta.0",
         "@absolutejs/manifest": "^0.1.0",
         "@sinclair/typebox": "^0.34.0",
         "stripe": "^22.0.0",
@@ -70,7 +70,7 @@
 
     "@absolutejs/agent-runtime": ["@absolutejs/agent-runtime@0.2.1", "", { "dependencies": { "@absolutejs/manifest": "^0.3.0", "@sinclair/typebox": "^0.34.0" } }, "sha512-t8Ka2t8Kff/vQK+gfevw96ydCAvmYNOur3yIte1L1H+4aaA8td9pjwgGFhss4XbOjqIIg8HNWk6YjbTb9NARZA=="],
 
-    "@absolutejs/commerce": ["@absolutejs/commerce@0.31.2-beta.0", "", { "dependencies": { "@absolutejs/manifest": "^0.1.0", "@sinclair/typebox": "^0.34.0", "fflate": "^0.8.3" }, "peerDependencies": { "@react-three/drei": ">=9.0.0", "@react-three/fiber": ">=8.0.0", "drizzle-orm": ">=0.30.0", "react": ">=18.0.0", "three": "" }, "optionalPeers": ["@react-three/drei", "@react-three/fiber", "drizzle-orm", "react", "three"] }, "sha512-XdIU2tchVOKneniUSFPmSSjazecB7cazdl+cfJWabYSygC9MxGoh8IpzQVEZy/i8QxiBI9slHrgwUPm7vEU5QA=="],
+    "@absolutejs/commerce": ["@absolutejs/commerce@0.32.0-beta.0", "", { "dependencies": { "@absolutejs/manifest": "^0.1.0", "@sinclair/typebox": "^0.34.0", "fflate": "^0.8.3" }, "peerDependencies": { "@react-three/drei": ">=9.0.0", "@react-three/fiber": ">=8.0.0", "drizzle-orm": ">=0.30.0", "react": ">=18.0.0", "three": "" }, "optionalPeers": ["@react-three/drei", "@react-three/fiber", "drizzle-orm", "react", "three"] }, "sha512-A4Ny8SirktSVA+kH48OPbQJM1HSwyRVELeL++ULpkemgC6oiFl75ZktrNpvhBYsYrJDQfCOGyPWVwPJBxHdKwg=="],
 
     "@absolutejs/commerce-customcat": ["@absolutejs/commerce-customcat@workspace:customcat"],
 

@@ -4,6 +4,7 @@ import type {
   CreateCheckoutInput,
   CreateCouponInput,
   PaymentProvider,
+  PaymentRefund,
   WebhookEvent,
 } from "@absolutejs/commerce";
 import Stripe from "stripe";
@@ -163,6 +164,16 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
     };
   };
 
+  const normalizeRefund = (refund: Stripe.Refund): PaymentRefund => ({
+    providerRefundId: refund.id,
+    status:
+      refund.status === "succeeded"
+        ? "succeeded"
+        : refund.status === "failed" || refund.status === "canceled"
+          ? "failed"
+          : "pending",
+  });
+
   return {
     createCheckout,
     async createCoupon(input: CreateCouponInput) {
@@ -183,13 +194,23 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
 
       return normalizeSession(session);
     },
-    async refundBySession(sessionId: string) {
+    async refundBySession(sessionId: string, idempotencyKey: string) {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       const intent =
         typeof session.payment_intent === "string"
           ? session.payment_intent
           : (session.payment_intent?.id ?? null);
-      if (intent) await stripe.refunds.create({ payment_intent: intent });
+      if (!intent)
+        throw new Error("Stripe Checkout session has no payment intent");
+      const refund = await stripe.refunds.create(
+        { payment_intent: intent },
+        { idempotencyKey },
+      );
+
+      return normalizeRefund(refund);
+    },
+    async retrieveRefund(providerRefundId: string) {
+      return normalizeRefund(await stripe.refunds.retrieve(providerRefundId));
     },
     async verifyWebhook(
       payload: string,
