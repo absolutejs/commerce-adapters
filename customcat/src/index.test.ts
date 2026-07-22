@@ -154,6 +154,38 @@ describe("CustomCat fulfillment", () => {
     expect(submitted.status).toBe("accepted");
   });
 
+  it("keeps back-only artwork on the provider's back-print field", async () => {
+    let requestBody: Record<string, unknown> = {};
+    const provider = createCustomCatFulfillment({
+      apiKey: "test-key",
+      fetch: async (_input, init) => {
+        requestBody = JSON.parse(String(init?.body));
+
+        return Response.json({ ORDER_ID: "ORDER-1", status: "Pending" });
+      },
+    });
+    await provider.submitOrder({
+      ...order,
+      lines: [
+        {
+          ...order.lines[0]!,
+          artwork: [
+            { placement: "back", url: "https://cdn.test/back-only.png" },
+          ],
+        },
+      ],
+    });
+
+    expect(requestBody.items).toEqual([
+      {
+        catalog_sku: "48146",
+        design_url: "",
+        design_url_back: "https://cdn.test/back-only.png",
+        quantity: 2,
+      },
+    ]);
+  });
+
   it("normalizes status shipments and cost", async () => {
     const provider = createCustomCatFulfillment({
       apiKey: "test-key",

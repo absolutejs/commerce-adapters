@@ -66,7 +66,7 @@ export const customCatEffectAdapterDescriptor: EffectAdapterDescriptor = {
     requiresMandate: true,
   },
   title: "CustomCat fulfillment order",
-  version: "0.3.0",
+  version: "0.3.1",
 };
 
 export type CustomCatConfig = {
@@ -256,8 +256,8 @@ export const createCustomCatFulfillment = (
 
         return {
           catalog_sku: line.providerSku,
-          design_url: front?.url ?? back?.url,
-          ...(front && back ? { design_url_back: back.url } : {}),
+          design_url: front?.url ?? "",
+          ...(back ? { design_url_back: back.url } : {}),
           ...(front?.presetId ? { preset_id: front.presetId } : {}),
           quantity: line.quantity,
         };

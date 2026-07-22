@@ -277,17 +277,20 @@ export const createCustomCatCatalog = (
           total + (priced.get(line.providerSku) ?? 0) * line.quantity,
         0,
       );
-      const backPrintCount = order.lines.reduce(
+      const secondSidePrintCount = order.lines.reduce(
         (total, line) =>
           total +
           (line.artwork.some(
+            ({ placement }) => placement.trim().toLowerCase() === "front",
+          ) &&
+          line.artwork.some(
             ({ placement }) => placement.trim().toLowerCase() === "back",
           )
             ? line.quantity
             : 0),
         0,
       );
-      const adjustmentsCents = backPrintCount * BACK_PRINT_CENTS;
+      const adjustmentsCents = secondSidePrintCount * BACK_PRINT_CENTS;
       const shippingPayload = await request("/shipping", undefined, true);
       const methods = records(
         shippingPayload,
