@@ -7,19 +7,20 @@
 coupons, refund by session, and verify webhooks into a normalized event.
 
 ```ts
-import { createStripePayment } from '@absolutejs/commerce-stripe';
+import { createStripePayment } from "@absolutejs/commerce-stripe";
 
 const payments = createStripePayment({
-	secretKey: process.env.STRIPE_SECRET_KEY!,
-	webhookSecret: process.env.STRIPE_WEBHOOK_SECRET!
+  secretKey: process.env.STRIPE_SECRET_KEY!,
+  webhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
 });
 
 const { clientSecret } = await payments.createCheckout({
-	uiMode: 'embedded',
-	returnUrl: `${origin}/return?session_id={CHECKOUT_SESSION_ID}`,
-	lineItems: [{ name: 'Classic Tee', amountCents: 4000, quantity: 1 }],
-	shipping: { mode: 'collect', countries: ['US', 'CA'], flatAmountCents: 600 },
-	automaticTax: true
+  idempotencyKey: "checkout-attempt-123",
+  uiMode: "embedded",
+  returnUrl: `${origin}/return?session_id={CHECKOUT_SESSION_ID}`,
+  lineItems: [{ name: "Classic Tee", amountCents: 4000, quantity: 1 }],
+  shipping: { mode: "collect", countries: ["US", "CA"], flatAmountCents: 600 },
+  automaticTax: true,
 });
 
 // In your webhook route (pass the raw body):
