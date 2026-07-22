@@ -37,6 +37,13 @@ receive stable host-owned idempotency keys. `submit: false` stages evidence for
 review; `submit: true` sends it to the payment network. PAAS keeps the latter
 behind a separate default-off gate.
 
+`reconcileDisputeEvidence()` retrieves the exact Stripe Dispute and compares
+the intended normalized text and file-purpose fields with Stripe's retained
+evidence. It reports whether the effect applied, maps provider file IDs back to
+host attachment IDs, and derives staged/submitted state from `has_evidence` and
+`submission_count`. Hosts can therefore reconcile an ambiguous update before
+deciding whether the stable-idempotency submission may be retried.
+
 ## License
 
 Apache-2.0.

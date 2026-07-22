@@ -101,6 +101,55 @@ const disputeFileEvidence = (
   return evidence;
 };
 
+export const stripeDisputeEvidenceReconciliation = (
+  dispute: {
+    evidence: object;
+    evidence_details: { has_evidence: boolean; submission_count: number };
+    status: string;
+  },
+  input: Parameters<
+    NonNullable<PaymentProvider["reconcileDisputeEvidence"]>
+  >[0],
+) => {
+  const expectedText = disputeTextEvidence(input.evidence);
+  const textApplied = Object.entries(expectedText).every(
+    ([key, value]) =>
+      value === undefined || Reflect.get(dispute.evidence, key) === value,
+  );
+  const providerFileIds: Record<string, string> = {};
+  const purposes = new Set<string>();
+  let filesApplied = true;
+  for (const file of input.files) {
+    if (purposes.has(file.purpose))
+      throw new Error(
+        `Stripe accepts one dispute evidence file for ${file.purpose}`,
+      );
+    purposes.add(file.purpose);
+    const providerFile: unknown = Reflect.get(dispute.evidence, file.purpose);
+    const providerFileId =
+      typeof providerFile === "string"
+        ? providerFile
+        : providerFile &&
+            typeof providerFile === "object" &&
+            "id" in providerFile &&
+            typeof providerFile.id === "string"
+          ? providerFile.id
+          : undefined;
+    if (!providerFileId) filesApplied = false;
+    else providerFileIds[file.id] = providerFileId;
+  }
+  const submissionCount = dispute.evidence_details.submission_count;
+
+  return {
+    applied:
+      dispute.evidence_details.has_evidence && textApplied && filesApplied,
+    providerFileIds,
+    providerStatus: dispute.status,
+    submissionCount,
+    submitted: submissionCount > 0,
+  };
+};
+
 const isTaxError = (error: unknown) =>
   error instanceof Error && /tax/i.test(error.message);
 
@@ -373,6 +422,12 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
     },
     async retrieveRefund(providerRefundId: string) {
       return normalizeRefund(await stripe.refunds.retrieve(providerRefundId));
+    },
+    async reconcileDisputeEvidence(input) {
+      return stripeDisputeEvidenceReconciliation(
+        await stripe.disputes.retrieve(input.providerDisputeId),
+        input,
+      );
     },
     async submitDisputeEvidence(input) {
       validateDisputeFiles(input.files);
