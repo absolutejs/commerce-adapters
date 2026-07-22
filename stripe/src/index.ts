@@ -41,18 +41,20 @@ const constructStripeWebhookEvent = async (
 ) => {
   let lastError: unknown;
   for (const [index, secret] of secrets.entries()) {
+    let event: Stripe.Event;
     try {
-      const event = await Stripe.webhooks.constructEventAsync(
+      event = await Stripe.webhooks.constructEventAsync(
         payload,
         signature,
         secret,
       );
-      await onVerified?.(index);
-
-      return event;
     } catch (error) {
       lastError = error;
+      continue;
     }
+    await onVerified?.(index);
+
+    return event;
   }
   throw lastError instanceof Error
     ? lastError

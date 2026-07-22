@@ -46,6 +46,30 @@ describe("Stripe webhook secrets", () => {
     expect(event.kind).toBe("dispute");
     expect(verifiedIndex).toBe(1);
   });
+
+  test("does not misclassify matched-version retention failure as a bad signature", async () => {
+    const payload = JSON.stringify({
+      data: { object: { id: "cs_retention" } },
+      id: "evt_retention",
+      object: "event",
+      type: "checkout.session.expired",
+    });
+    const signature = await Stripe.webhooks.generateTestHeaderStringAsync({
+      payload,
+      secret: "whsec_current",
+    });
+    const payment = createStripePayment({
+      onWebhookSecretVerified: () => {
+        throw new Error("Secret-version retention failed");
+      },
+      secretKey: "sk_test_network_free",
+      webhookSecrets: ["whsec_current", "whsec_previous"],
+    });
+
+    await expect(payment.verifyEvent!(payload, signature)).rejects.toThrow(
+      "Secret-version retention failed",
+    );
+  });
 });
 
 describe("Stripe dispute evidence", () => {
