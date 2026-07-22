@@ -30,6 +30,12 @@ const event = await payments.verifyWebhook(rawBody, signature);
 if (event.isComplete) fulfil(event.session); // normalized, gateway-agnostic
 ```
 
+During signing-secret rotation, pass `webhookSecrets` in newest-first order and
+use `onWebhookSecretVerified` to record which retained version matched. Managed
+platforms can use `createStripeWebhookEndpointManager` to stage an endpoint as
+disabled, persist its one-time signing secret, verify local retrieval, and only
+then enable delivery.
+
 `submitDisputeEvidence()` uploads every clean attachment with Stripe purpose
 `dispute_evidence`, maps provider-neutral text and file purposes onto the
 Dispute evidence fields, and updates the exact dispute. File and dispute calls

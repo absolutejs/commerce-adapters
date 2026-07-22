@@ -9,8 +9,8 @@ import type { StripeConfig } from "./index";
 
 const tool = toolFactory<PaymentProvider>();
 
-/* StripeConfig is secret material only (secretKey, webhookSecret) — both come
- * from env at wiring time, so the implementation has no settings schema. */
+/* StripeConfig is secret material only. The manifest's single env secret is the
+ * simple deployment form; managed hosts can supply overlapping webhookSecrets. */
 export const manifest = defineManifest<StripeConfig, PaymentProvider>()({
   contract: 1,
   identity: {

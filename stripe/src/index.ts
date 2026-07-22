@@ -8,14 +8,130 @@ import type {
   PaymentDisputeEvidenceReconciliation,
   PaymentProvider,
   PaymentRefund,
+  PaymentWebhookEndpoint,
+  PaymentWebhookEndpointManager,
   PaymentWebhookEvent,
   WebhookEvent,
 } from "@absolutejs/commerce";
 import Stripe from "stripe";
 
 export type StripeConfig = {
+  onWebhookSecretVerified?: (index: number) => Promise<void> | void;
   secretKey: string;
-  webhookSecret: string;
+  webhookSecret?: string;
+  webhookSecrets?: readonly string[];
+};
+
+const stripeWebhookSecrets = (config: StripeConfig) => {
+  const secrets = [
+    ...(config.webhookSecrets ?? []),
+    ...(config.webhookSecret ? [config.webhookSecret] : []),
+  ].filter((secret, index, all) => secret && all.indexOf(secret) === index);
+  if (secrets.length === 0)
+    throw new Error("Stripe requires at least one webhook signing secret");
+
+  return secrets;
+};
+
+const constructStripeWebhookEvent = async (
+  payload: string,
+  signature: string,
+  secrets: readonly string[],
+  onVerified?: (index: number) => Promise<void> | void,
+) => {
+  let lastError: unknown;
+  for (const [index, secret] of secrets.entries()) {
+    try {
+      const event = await Stripe.webhooks.constructEventAsync(
+        payload,
+        signature,
+        secret,
+      );
+      await onVerified?.(index);
+
+      return event;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Stripe webhook signature verification failed");
+};
+
+export const verifyStripeWebhookSigningSecret = async (secret: string) => {
+  const payload = JSON.stringify({
+    data: { object: {} },
+    id: "evt_absolutejs_signing_secret_canary",
+    object: "event",
+    type: "absolutejs.signing_secret.canary",
+  });
+  const signature = await Stripe.webhooks.generateTestHeaderStringAsync({
+    payload,
+    secret,
+  });
+  await Stripe.webhooks.constructEventAsync(payload, signature, secret);
+
+  return true;
+};
+
+const stripeWebhookEndpoint = (
+  endpoint: Stripe.WebhookEndpoint,
+): PaymentWebhookEndpoint => {
+  if (endpoint.status !== "disabled" && endpoint.status !== "enabled")
+    throw new Error(`Unsupported Stripe webhook status: ${endpoint.status}`);
+
+  return {
+    enabledEvents: [...endpoint.enabled_events],
+    id: endpoint.id,
+    livemode: endpoint.livemode,
+    status: endpoint.status,
+    url: endpoint.url,
+  };
+};
+
+export const createStripeWebhookEndpointManager = (config: {
+  secretKey: string;
+}): PaymentWebhookEndpointManager => {
+  const stripe = new Stripe(config.secretKey);
+
+  return {
+    async create(input) {
+      const created = await stripe.webhookEndpoints.create({
+        enabled_events:
+          input.enabledEvents as Stripe.WebhookEndpointCreateParams.EnabledEvent[],
+        url: input.url,
+      });
+      if (!created.secret)
+        throw new Error("Stripe did not return the new webhook signing secret");
+      const endpoint = input.disabled
+        ? await stripe.webhookEndpoints.update(created.id, { disabled: true })
+        : created;
+
+      return {
+        ...stripeWebhookEndpoint(endpoint),
+        signingSecret: created.secret,
+      };
+    },
+    async delete(endpointId) {
+      await stripe.webhookEndpoints.del(endpointId);
+    },
+    async retrieve(endpointId) {
+      return stripeWebhookEndpoint(
+        await stripe.webhookEndpoints.retrieve(endpointId),
+      );
+    },
+    async update(endpointId, input) {
+      return stripeWebhookEndpoint(
+        await stripe.webhookEndpoints.update(endpointId, {
+          disabled: input.disabled,
+          enabled_events: input.enabledEvents as
+            Stripe.WebhookEndpointUpdateParams.EnabledEvent[] | undefined,
+          url: input.url,
+        }),
+      );
+    },
+  };
 };
 
 const LINE_ITEM_LIMIT = 100;
@@ -191,6 +307,7 @@ const toAddress = (
 /** Build a `PaymentProvider` backed by Stripe (stripe-node, Basil API). */
 export const createStripePayment = (config: StripeConfig): PaymentProvider => {
   const stripe = new Stripe(config.secretKey);
+  const webhookSecrets = stripeWebhookSecrets(config);
 
   const normalizeSession = async (
     session: Stripe.Checkout.Session,
@@ -372,10 +489,11 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
     payload: string,
     signature: string,
   ): Promise<PaymentWebhookEvent> => {
-    const event = await stripe.webhooks.constructEventAsync(
+    const event = await constructStripeWebhookEvent(
       payload,
       signature,
-      config.webhookSecret,
+      webhookSecrets,
+      config.onWebhookSecretVerified,
     );
     if (event.type.startsWith("charge.dispute."))
       return {

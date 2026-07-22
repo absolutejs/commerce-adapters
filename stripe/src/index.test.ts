@@ -2,7 +2,51 @@ import { describe, expect, test } from "bun:test";
 import {
   createStripePayment,
   stripeDisputeEvidenceReconciliation,
+  verifyStripeWebhookSigningSecret,
 } from "./index";
+import Stripe from "stripe";
+
+describe("Stripe webhook secrets", () => {
+  test("verifies a signing secret without a provider request", async () => {
+    expect(await verifyStripeWebhookSigningSecret("whsec_canary")).toBe(true);
+  });
+
+  test("accepts an overlap secret and reports the matched version", async () => {
+    const payload = JSON.stringify({
+      data: {
+        object: {
+          amount: 2_500,
+          currency: "usd",
+          evidence_details: { due_by: null },
+          id: "dp_overlap",
+          payment_intent: "pi_overlap",
+          reason: "fraudulent",
+          status: "needs_response",
+        },
+      },
+      id: "evt_overlap",
+      object: "event",
+      type: "charge.dispute.created",
+    });
+    const signature = await Stripe.webhooks.generateTestHeaderStringAsync({
+      payload,
+      secret: "whsec_previous",
+    });
+    let verifiedIndex = -1;
+    const payment = createStripePayment({
+      onWebhookSecretVerified: (index) => {
+        verifiedIndex = index;
+      },
+      secretKey: "sk_test_network_free",
+      webhookSecrets: ["whsec_current", "whsec_previous"],
+    });
+
+    const event = await payment.verifyEvent!(payload, signature);
+
+    expect(event.kind).toBe("dispute");
+    expect(verifiedIndex).toBe(1);
+  });
+});
 
 describe("Stripe dispute evidence", () => {
   test("rejects combined text beyond Stripe's limit before a provider request", async () => {
