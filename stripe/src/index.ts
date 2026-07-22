@@ -4,6 +4,7 @@ import type {
   CreateCheckoutInput,
   CreateCouponInput,
   PaymentDispute,
+  PaymentDisputeEvidenceFile,
   PaymentProvider,
   PaymentRefund,
   PaymentWebhookEvent,
@@ -17,6 +18,49 @@ export type StripeConfig = {
 };
 
 const LINE_ITEM_LIMIT = 100;
+
+const disputeTextEvidence = (
+  evidence: Parameters<
+    NonNullable<PaymentProvider["submitDisputeEvidence"]>
+  >[0]["evidence"],
+): Stripe.DisputeUpdateParams.Evidence => ({
+  access_activity_log: evidence.accessActivityLog,
+  billing_address: evidence.billingAddress,
+  cancellation_policy_disclosure: evidence.cancellationPolicyDisclosure,
+  cancellation_rebuttal: evidence.cancellationRebuttal,
+  customer_email_address: evidence.customerEmailAddress,
+  customer_name: evidence.customerName,
+  customer_purchase_ip: evidence.customerPurchaseIp,
+  duplicate_charge_explanation: evidence.duplicateChargeExplanation,
+  duplicate_charge_id: evidence.duplicateChargeId,
+  product_description: evidence.productDescription,
+  refund_policy_disclosure: evidence.refundPolicyDisclosure,
+  refund_refusal_explanation: evidence.refundRefusalExplanation,
+  service_date: evidence.serviceDate,
+  shipping_address: evidence.shippingAddress,
+  shipping_carrier: evidence.shippingCarrier,
+  shipping_date: evidence.shippingDate,
+  shipping_tracking_number: evidence.shippingTrackingNumber,
+  uncategorized_text: evidence.uncategorizedText,
+});
+
+const disputeFileEvidence = (
+  files: PaymentDisputeEvidenceFile[],
+  providerFileIds: Record<string, string>,
+): Stripe.DisputeUpdateParams.Evidence => {
+  const evidence: Stripe.DisputeUpdateParams.Evidence = {};
+  const purposes = new Set<string>();
+  for (const file of files) {
+    if (purposes.has(file.purpose))
+      throw new Error(
+        `Stripe accepts one dispute evidence file for ${file.purpose}`,
+      );
+    purposes.add(file.purpose);
+    evidence[file.purpose] = providerFileIds[file.id];
+  }
+
+  return evidence;
+};
 
 const isTaxError = (error: unknown) =>
   error instanceof Error && /tax/i.test(error.message);
@@ -290,6 +334,41 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
     },
     async retrieveRefund(providerRefundId: string) {
       return normalizeRefund(await stripe.refunds.retrieve(providerRefundId));
+    },
+    async submitDisputeEvidence(input) {
+      const providerFileIds: Record<string, string> = {};
+      for (const file of input.files) {
+        const uploaded = await stripe.files.create(
+          {
+            file: {
+              data: file.bytes,
+              name: file.name,
+              type: file.contentType,
+            },
+            purpose: "dispute_evidence",
+          },
+          { idempotencyKey: `${input.idempotencyKey}:file:${file.id}` },
+        );
+        providerFileIds[file.id] = uploaded.id;
+      }
+      const dispute = await stripe.disputes.update(
+        input.providerDisputeId,
+        {
+          evidence: {
+            ...disputeTextEvidence(input.evidence),
+            ...disputeFileEvidence(input.files, providerFileIds),
+          },
+          submit: input.submit,
+        },
+        { idempotencyKey: `${input.idempotencyKey}:dispute` },
+      );
+
+      return {
+        providerFileIds,
+        providerStatus: dispute.status,
+        submissionCount: dispute.evidence_details.submission_count,
+        submitted: input.submit,
+      };
     },
     verifyEvent,
     async verifyWebhook(

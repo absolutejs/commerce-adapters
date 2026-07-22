@@ -30,6 +30,13 @@ const event = await payments.verifyWebhook(rawBody, signature);
 if (event.isComplete) fulfil(event.session); // normalized, gateway-agnostic
 ```
 
+`submitDisputeEvidence()` uploads every clean attachment with Stripe purpose
+`dispute_evidence`, maps provider-neutral text and file purposes onto the
+Dispute evidence fields, and updates the exact dispute. File and dispute calls
+receive stable host-owned idempotency keys. `submit: false` stages evidence for
+review; `submit: true` sends it to the payment network. PAAS keeps the latter
+behind a separate default-off gate.
+
 ## License
 
 Apache-2.0.
