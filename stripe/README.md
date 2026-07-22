@@ -41,7 +41,9 @@ behind a separate default-off gate.
 the intended normalized text and file-purpose fields with Stripe's retained
 evidence. It reports whether the effect applied, maps provider file IDs back to
 host attachment IDs, and derives staged/submitted state from `has_evidence` and
-`submission_count`. Hosts can therefore reconcile an ambiguous update before
+`submission_count`. It also reports only the mismatched field/purpose names and
+missing/different reason, never the expected or observed customer values. Hosts
+can therefore explain and reconcile an ambiguous update before
 deciding whether the stable-idempotency submission may be retried.
 
 ## License

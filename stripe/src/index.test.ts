@@ -57,6 +57,7 @@ describe("Stripe dispute evidence", () => {
 
     expect(staged).toEqual({
       applied: true,
+      diagnostics: { hasEvidence: true, mismatches: [] },
       providerFileIds: { "attachment-customer": "file_customer" },
       providerStatus: "needs_response",
       submissionCount: 0,
@@ -84,5 +85,16 @@ describe("Stripe dispute evidence", () => {
     );
 
     expect(result.applied).toBe(false);
+    expect(result.diagnostics).toEqual({
+      hasEvidence: true,
+      mismatches: [
+        { field: "customer_name", reason: "different", scope: "text" },
+        {
+          field: "customer_communication",
+          reason: "missing",
+          scope: "file",
+        },
+      ],
+    });
   });
 });

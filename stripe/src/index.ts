@@ -5,6 +5,7 @@ import type {
   CreateCouponInput,
   PaymentDispute,
   PaymentDisputeEvidenceFile,
+  PaymentDisputeEvidenceReconciliation,
   PaymentProvider,
   PaymentRefund,
   PaymentWebhookEvent,
@@ -112,13 +113,21 @@ export const stripeDisputeEvidenceReconciliation = (
   >[0],
 ) => {
   const expectedText = disputeTextEvidence(input.evidence);
-  const textApplied = Object.entries(expectedText).every(
-    ([key, value]) =>
-      value === undefined || Reflect.get(dispute.evidence, key) === value,
-  );
+  const mismatches: PaymentDisputeEvidenceReconciliation["diagnostics"]["mismatches"] =
+    [];
+  for (const [field, value] of Object.entries(expectedText)) {
+    if (value === undefined) continue;
+    const observed: unknown = Reflect.get(dispute.evidence, field);
+    if (observed !== value)
+      mismatches.push({
+        field,
+        reason:
+          observed === undefined || observed === null ? "missing" : "different",
+        scope: "text",
+      });
+  }
   const providerFileIds: Record<string, string> = {};
   const purposes = new Set<string>();
-  let filesApplied = true;
   for (const file of input.files) {
     if (purposes.has(file.purpose))
       throw new Error(
@@ -135,14 +144,22 @@ export const stripeDisputeEvidenceReconciliation = (
             typeof providerFile.id === "string"
           ? providerFile.id
           : undefined;
-    if (!providerFileId) filesApplied = false;
+    if (!providerFileId)
+      mismatches.push({
+        field: file.purpose,
+        reason: "missing",
+        scope: "file",
+      });
     else providerFileIds[file.id] = providerFileId;
   }
   const submissionCount = dispute.evidence_details.submission_count;
 
   return {
-    applied:
-      dispute.evidence_details.has_evidence && textApplied && filesApplied,
+    applied: dispute.evidence_details.has_evidence && mismatches.length === 0,
+    diagnostics: {
+      hasEvidence: dispute.evidence_details.has_evidence,
+      mismatches,
+    },
     providerFileIds,
     providerStatus: dispute.status,
     submissionCount,
