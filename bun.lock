@@ -10,9 +10,9 @@
     },
     "customcat": {
       "name": "@absolutejs/commerce-customcat",
-      "version": "0.6.7-beta.0",
+      "version": "0.6.8-beta.0",
       "dependencies": {
-        "@absolutejs/commerce": "0.34.0-beta.0",
+        "@absolutejs/commerce": "0.34.2-beta.0",
         "@absolutejs/execution": "0.14.2",
         "@absolutejs/manifest": "^0.3.0",
         "@sinclair/typebox": "^0.34.0",
@@ -24,7 +24,7 @@
     },
     "easypost": {
       "name": "@absolutejs/commerce-easypost",
-      "version": "0.19.7-beta.0",
+      "version": "0.19.8-beta.0",
       "dependencies": {
         "@absolutejs/commerce": "0.34.1-beta.0",
         "@absolutejs/manifest": "^0.1.0",
@@ -38,9 +38,9 @@
     },
     "resend": {
       "name": "@absolutejs/commerce-resend",
-      "version": "0.19.7-beta.0",
+      "version": "0.19.8-beta.0",
       "dependencies": {
-        "@absolutejs/commerce": "0.34.0-beta.0",
+        "@absolutejs/commerce": "0.34.1-beta.0",
         "@absolutejs/manifest": "^0.1.0",
         "@sinclair/typebox": "^0.34.0",
         "resend": "^6.0.0",
@@ -52,9 +52,9 @@
     },
     "stripe": {
       "name": "@absolutejs/commerce-stripe",
-      "version": "0.21.1-beta.0",
+      "version": "0.21.2-beta.0",
       "dependencies": {
-        "@absolutejs/commerce": "0.34.0-beta.0",
+        "@absolutejs/commerce": "0.34.1-beta.0",
         "@absolutejs/manifest": "^0.1.0",
         "@sinclair/typebox": "^0.34.0",
         "stripe": "^22.0.0",
@@ -70,7 +70,7 @@
 
     "@absolutejs/agent-runtime": ["@absolutejs/agent-runtime@0.2.1", "", { "dependencies": { "@absolutejs/manifest": "^0.3.0", "@sinclair/typebox": "^0.34.0" } }, "sha512-t8Ka2t8Kff/vQK+gfevw96ydCAvmYNOur3yIte1L1H+4aaA8td9pjwgGFhss4XbOjqIIg8HNWk6YjbTb9NARZA=="],
 
-    "@absolutejs/commerce": ["@absolutejs/commerce@0.34.0-beta.0", "", { "dependencies": { "@absolutejs/manifest": "^0.1.0", "@sinclair/typebox": "^0.34.0", "fflate": "^0.8.3" }, "peerDependencies": { "@react-three/drei": ">=9.0.0", "@react-three/fiber": ">=8.0.0", "drizzle-orm": ">=0.30.0", "react": ">=18.0.0", "three": "" }, "optionalPeers": ["@react-three/drei", "@react-three/fiber", "drizzle-orm", "react", "three"] }, "sha512-FRnURwrZWrP2/nRsxbLrV7tSgEa6dBioxVXCj0QAWveUv1W+eaNv/TQaT4FJBzXToPaJiMspkMOtGtiQNgdkTQ=="],
+    "@absolutejs/commerce": ["@absolutejs/commerce@0.34.2-beta.0", "", { "dependencies": { "@absolutejs/manifest": "^0.1.0", "@sinclair/typebox": "^0.34.0", "fflate": "^0.8.3" }, "peerDependencies": { "@react-three/drei": ">=9.0.0", "@react-three/fiber": ">=8.0.0", "drizzle-orm": ">=1.0.0-rc.4", "react": ">=18.0.0", "three": "" }, "optionalPeers": ["@react-three/drei", "@react-three/fiber", "drizzle-orm", "react", "three"] }, "sha512-ka9N5ZYr8KXseLYQqBziNhlh9cPD9dMtYOcgNqB7N0Cfr6n22x843z/3OheOlemStAl1vIsw54cus9yA3YcAZQ=="],
 
     "@absolutejs/commerce-customcat": ["@absolutejs/commerce-customcat@workspace:customcat"],
 
@@ -310,7 +310,11 @@
 
     "@absolutejs/commerce-easypost/@absolutejs/manifest": ["@absolutejs/manifest@0.1.1", "", { "peerDependencies": { "@sinclair/typebox": "^0.34.0" }, "bin": { "absolute-manifest": "dist/cli.js" } }, "sha512-4ucQdW26675CDwiG+umrjb8+RlaQGtNMdqXAcLTZTKhN0XudVJpwdU8yzhuFljEOvU/HuOlzZaIVVCsmCPKNqg=="],
 
+    "@absolutejs/commerce-resend/@absolutejs/commerce": ["@absolutejs/commerce@0.34.1-beta.0", "", { "dependencies": { "@absolutejs/manifest": "^0.1.0", "@sinclair/typebox": "^0.34.0", "fflate": "^0.8.3" }, "peerDependencies": { "@react-three/drei": ">=9.0.0", "@react-three/fiber": ">=8.0.0", "drizzle-orm": ">=1.0.0-rc.4", "react": ">=18.0.0", "three": "" }, "optionalPeers": ["@react-three/drei", "@react-three/fiber", "drizzle-orm", "react", "three"] }, "sha512-lNfbSw6cw3wE3mM5tTIjSDnE6tErekL76lF8FQzoQzV5XIgMMVQHgEm9ybilIFI09dufjvzedgIoEy7j9Kh5cg=="],
+
     "@absolutejs/commerce-resend/@absolutejs/manifest": ["@absolutejs/manifest@0.1.1", "", { "peerDependencies": { "@sinclair/typebox": "^0.34.0" }, "bin": { "absolute-manifest": "dist/cli.js" } }, "sha512-4ucQdW26675CDwiG+umrjb8+RlaQGtNMdqXAcLTZTKhN0XudVJpwdU8yzhuFljEOvU/HuOlzZaIVVCsmCPKNqg=="],
+
+    "@absolutejs/commerce-stripe/@absolutejs/commerce": ["@absolutejs/commerce@0.34.1-beta.0", "", { "dependencies": { "@absolutejs/manifest": "^0.1.0", "@sinclair/typebox": "^0.34.0", "fflate": "^0.8.3" }, "peerDependencies": { "@react-three/drei": ">=9.0.0", "@react-three/fiber": ">=8.0.0", "drizzle-orm": ">=1.0.0-rc.4", "react": ">=18.0.0", "three": "" }, "optionalPeers": ["@react-three/drei", "@react-three/fiber", "drizzle-orm", "react", "three"] }, "sha512-lNfbSw6cw3wE3mM5tTIjSDnE6tErekL76lF8FQzoQzV5XIgMMVQHgEm9ybilIFI09dufjvzedgIoEy7j9Kh5cg=="],
 
     "@absolutejs/commerce-stripe/@absolutejs/manifest": ["@absolutejs/manifest@0.1.1", "", { "peerDependencies": { "@sinclair/typebox": "^0.34.0" }, "bin": { "absolute-manifest": "dist/cli.js" } }, "sha512-4ucQdW26675CDwiG+umrjb8+RlaQGtNMdqXAcLTZTKhN0XudVJpwdU8yzhuFljEOvU/HuOlzZaIVVCsmCPKNqg=="],
 
