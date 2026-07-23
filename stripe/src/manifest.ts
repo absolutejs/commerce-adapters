@@ -12,7 +12,7 @@ const tool = toolFactory<PaymentProvider>();
 /* StripeConfig is secret material only. The manifest's single env secret is the
  * simple deployment form; managed hosts can supply overlapping webhookSecrets. */
 export const manifest = defineManifest<StripeConfig, PaymentProvider>()({
-  contract: 1,
+  contract: 2,
   identity: {
     accent: "#635bff",
     category: "commerce",
@@ -61,7 +61,17 @@ export const manifest = defineManifest<StripeConfig, PaymentProvider>()({
   settings: Type.Object({}),
   tools: {
     checkout_status: tool.runtime({
-      annotations: { readOnlyHint: true },
+      annotations: { idempotentHint: true, openWorldHint: true },
+      authorization: {
+        approval: "never",
+        audience: "owner",
+        destinations: ["configured-stripe-account"],
+        effects: ["read", "external-network"],
+        idempotency: { mode: "host" },
+        requiredScopes: ["payments:read"],
+        resource: { idField: "sessionId", type: "checkout-session" },
+        reversible: false,
+      },
       description:
         "Fetch the current state of one Stripe Checkout session by id: status, payment status, total, customer, shipping address, and line items.",
       handler: async ({ sessionId }, payments) =>
@@ -72,6 +82,16 @@ export const manifest = defineManifest<StripeConfig, PaymentProvider>()({
     }),
     create_coupon: tool.runtime({
       annotations: { openWorldHint: true },
+      authorization: {
+        approval: "policy",
+        audience: "owner",
+        destinations: ["configured-stripe-account"],
+        effects: ["write", "external-network"],
+        idempotency: { mode: "host" },
+        requiredScopes: ["commerce:coupons:write"],
+        resource: { type: "stripe-coupon" },
+        reversible: false,
+      },
       description:
         "Create a one-time Stripe coupon (percent off or a fixed amount off in cents) and return its id, ready to apply to a checkout.",
       handler: async ({ amountOffCents, currency, percentOff }, payments) => {
@@ -100,7 +120,21 @@ export const manifest = defineManifest<StripeConfig, PaymentProvider>()({
       }),
     }),
     refund_order: tool.runtime({
-      annotations: { destructiveHint: true, openWorldHint: true },
+      annotations: {
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+      authorization: {
+        approval: "always",
+        audience: "owner",
+        destinations: ["configured-stripe-account"],
+        effects: ["transfer", "write", "external-network"],
+        idempotency: { field: "idempotencyKey", mode: "field" },
+        requiredScopes: ["payments:refund"],
+        resource: { idField: "sessionId", type: "checkout-session" },
+        reversible: false,
+      },
       description:
         "Refund the full payment behind one Stripe Checkout session id. The charge is returned to the customer — this cannot be undone.",
       handler: async ({ idempotencyKey, sessionId }, payments) => {

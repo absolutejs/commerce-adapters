@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/commerce-easypost",
-  "version": "0.19.19-beta.1",
+  "version": "0.19.19-beta.2",
   "description": "EasyPost shipping adapter for @absolutejs/commerce",
   "repository": {
     "type": "git",
@@ -39,7 +39,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@absolutejs/manifest": "^0.1.0",
+    "@absolutejs/manifest": "^0.4.0",
     "@easypost/api": "^8.8.0",
     "@sinclair/typebox": "^0.34.0"
   },
@@ -52,6 +52,6 @@
     "typescript": "^5.9.3"
   },
   "absolutejs": {
-    "manifestContract": 1
+    "manifestContract": 2
   }
 }
