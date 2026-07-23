@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/commerce-customcat",
-  "version": "0.6.20-beta.0",
+  "version": "0.6.20-beta.1",
   "description": "CustomCat print-on-demand fulfillment adapter for @absolutejs/commerce",
   "repository": {
     "type": "git",
@@ -40,12 +40,16 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@absolutejs/commerce": "0.40.1-beta.0",
-    "@absolutejs/execution": "0.14.3",
     "@absolutejs/manifest": "^0.3.0",
     "@sinclair/typebox": "^0.34.0"
   },
+  "peerDependencies": {
+    "@absolutejs/commerce": ">=0.40.1-beta.1 <0.41",
+    "@absolutejs/execution": ">=0.14.4 <0.15"
+  },
   "devDependencies": {
+    "@absolutejs/commerce": "0.40.1-beta.1",
+    "@absolutejs/execution": "0.14.4",
     "@types/bun": "1.3.9",
     "typescript": "^5.9.3"
   },
