@@ -6,14 +6,16 @@
 tracking — so a shop can buy and print real carrier labels.
 
 ```ts
-import { createEasyPostProvider } from '@absolutejs/commerce-easypost';
+import { createEasyPostProvider } from "@absolutejs/commerce-easypost";
 
-const shipping = createEasyPostProvider({ apiKey: process.env.EASYPOST_API_KEY! });
+const shipping = createEasyPostProvider({
+  apiKey: process.env.EASYPOST_API_KEY!,
+});
 
 const label = await shipping.buyCheapestLabel({
-	from: shopAddress,
-	to: customerAddress,
-	parcel: { lengthIn: 12, widthIn: 9, heightIn: 2, weightOz: 8 }
+  from: shopAddress,
+  to: customerAddress,
+  parcel: { lengthIn: 12, widthIn: 9, heightIn: 2, weightOz: 8 },
 });
 // label.trackingNumber, label.labelUrl (print this), label.amount, …
 ```

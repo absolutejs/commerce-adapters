@@ -131,7 +131,7 @@ export const manifest = defineManifest<CustomCatConfig, FulfillmentProvider>()({
         peers: [
           {
             name: "@absolutejs/execution",
-            range: ">=0.14.2 <0.15.0",
+            range: ">=0.14.6 <0.15",
             reason: "Certified mandate-bound effect execution",
           },
         ],

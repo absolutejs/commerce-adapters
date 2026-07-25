@@ -3,8 +3,8 @@ import type { EmailProvider } from "@absolutejs/commerce";
 import { Type } from "@sinclair/typebox";
 import type { ResendConfig } from "./index";
 
-/* ResendConfig is { apiKey, from }: apiKey is secret material (env at wiring
- * time); `from` is the one serializable setting. */
+/* apiKey is secret material (env at wiring time), `from` is the one
+ * serializable setting, and onError is a host wiring concern. */
 export const manifest = defineManifest<ResendConfig, EmailProvider>()({
   contract: 2,
   identity: {

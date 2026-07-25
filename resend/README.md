@@ -6,18 +6,22 @@
 quote emails built with `renderEmail` from the commerce host.
 
 ```ts
-import { renderEmail, type EmailTheme } from '@absolutejs/commerce';
-import { createResendEmailProvider } from '@absolutejs/commerce-resend';
+import { renderEmail, type EmailTheme } from "@absolutejs/commerce";
+import { createResendEmailProvider } from "@absolutejs/commerce-resend";
 
 const email = createResendEmailProvider({
-	apiKey: process.env.RESEND_API_KEY!,
-	from: 'The Embroidery Place <hi@shop.com>'
+  apiKey: process.env.RESEND_API_KEY!,
+  from: "The Embroidery Place <hi@shop.com>",
 });
 
 await email.send({
-	to: customer.email,
-	subject: 'Order #ABCD1234 confirmed',
-	html: renderEmail(theme, { preheader: '…', heading: 'Order confirmed', intro: '…' })
+  to: customer.email,
+  subject: "Order #ABCD1234 confirmed",
+  html: renderEmail(theme, {
+    preheader: "…",
+    heading: "Order confirmed",
+    intro: "…",
+  }),
 });
 ```
 
