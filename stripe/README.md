@@ -40,7 +40,7 @@ then enable delivery.
 `dispute_evidence`, maps provider-neutral text and file purposes onto the
 Dispute evidence fields, and updates the exact dispute. File and dispute calls
 receive stable host-owned idempotency keys. `submit: false` stages evidence for
-review; `submit: true` sends it to the payment network. PAAS keeps the latter
+review; `submit: true` sends it to the payment network. The host application keeps the latter
 behind a separate default-off gate.
 
 `reconcileDisputeEvidence()` retrieves the exact Stripe Dispute and compares
