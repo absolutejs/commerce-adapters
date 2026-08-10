@@ -299,6 +299,7 @@ const toAddress = (
     country: addr?.country ?? "US",
     email: details.email ?? null,
     name: details.name ?? "",
+    phone: details.phone ?? null,
     state: addr?.state ?? "",
     street1: addr?.line1 ?? "",
     street2: addr?.line2 ?? null,
@@ -408,6 +409,9 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
       line_items: lineItems,
       metadata: input.metadata,
       mode: subscription ? "subscription" : "payment",
+      ...(input.collectPhone
+        ? { phone_number_collection: { enabled: true } }
+        : {}),
       ...(subscription
         ? {}
         : { payment_intent_data: { metadata: input.metadata } }),
