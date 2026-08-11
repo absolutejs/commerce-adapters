@@ -554,7 +554,11 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
 
       return normalizeSession(session);
     },
-    async refundBySession(sessionId: string, idempotencyKey: string) {
+    async refundBySession(
+      sessionId: string,
+      idempotencyKey: string,
+      amountCents?: number,
+    ) {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       const intent =
         typeof session.payment_intent === "string"
@@ -563,7 +567,10 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
       if (!intent)
         throw new Error("Stripe Checkout session has no payment intent");
       const refund = await stripe.refunds.create(
-        { payment_intent: intent },
+        {
+          payment_intent: intent,
+          ...(amountCents !== undefined ? { amount: amountCents } : {}),
+        },
         { idempotencyKey },
       );
 
