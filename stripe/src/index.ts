@@ -365,6 +365,9 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
         product_data: {
           description: line.description,
           name: line.name,
+          // Automatic tax rates untagged lines as general tangible goods;
+          // hosts tag category-exempt products (e.g. clothing) explicitly.
+          ...(line.taxCode ? { tax_code: line.taxCode } : {}),
         },
         tax_behavior: line.taxBehavior,
         unit_amount: line.amountCents,
@@ -391,6 +394,11 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
                           currency,
                         },
                         tax_behavior: "exclusive",
+                        // Stripe's shipping tax code: delivery charges then
+                        // follow each state's shipping-taxability rules
+                        // (allocated against the goods in the cart) instead
+                        // of being taxed as a general product.
+                        tax_code: "txcd_92010001",
                         type: "fixed_amount",
                       },
                     },
