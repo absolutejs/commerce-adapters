@@ -1,7 +1,7 @@
 {
   "name": "@absolutejs/commerce-machines",
-  "version": "0.2.0-beta.0",
-  "description": "Machine registry (embroidery, DTG, DTF, sublimation, vinyl, laser, label), DST/EXP/PES/JEF stitch codecs, and send-to-machine transports (folder, raw TCP 9100, IPP, PrintNode, shop bridge) for @absolutejs/commerce",
+  "version": "0.3.0-beta.0",
+  "description": "Machine registry (embroidery, DTG, DTF, sublimation, vinyl, laser, label), DST/EXP/PES/JEF stitch codecs, send-to-machine transports (folder, raw TCP 9100, IPP, PrintNode, shop bridge) and machine run telemetry (production reports, Zebra alerts, SNMP traps, RIP webhooks) for @absolutejs/commerce",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/absolutejs/commerce-adapters.git",
@@ -38,12 +38,17 @@
       "import": "./dist/bridge.js",
       "default": "./dist/bridge.js"
     },
+    "./telemetry": {
+      "types": "./dist/telemetry.d.ts",
+      "import": "./dist/telemetry.js",
+      "default": "./dist/telemetry.js"
+    },
     "./manifest.json": "./dist/manifest.json"
   },
   "license": "Apache-2.0",
   "author": "Alex Kahn",
   "scripts": {
-    "build": "rm -rf dist && bun build ./src/index.ts ./src/manifest.ts ./src/transports.ts ./src/bridge.ts --root ./src --outdir dist --target bun --external @absolutejs/commerce --external '@absolutejs/commerce/*' --external @absolutejs/manifest --external @sinclair/typebox && tsc --emitDeclarationOnly --project tsconfig.json && absolute-manifest emit",
+    "build": "rm -rf dist && bun build ./src/index.ts ./src/manifest.ts ./src/transports.ts ./src/bridge.ts ./src/telemetry.ts --root ./src --outdir dist --target bun --external @absolutejs/commerce --external '@absolutejs/commerce/*' --external @absolutejs/manifest --external @sinclair/typebox && tsc --emitDeclarationOnly --project tsconfig.json && absolute-manifest emit",
     "format": "prettier --write \"./**/*.{js,ts,json,md}\"",
     "release": "bun run check:package && npm publish --access public --tag beta",
     "test": "bun test",

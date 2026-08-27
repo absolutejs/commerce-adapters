@@ -1,6 +1,22 @@
-/* Bridge protocol: a cloud-hosted app queues typed jobs, a small agent on the
- * shop LAN polls for them, executes a fixed set of actions and reports back.
- * Framework-agnostic — apps mount the handlers on any two HTTP routes. */
+/* Bridge protocol: a cloud-hosted app queues typed jobs and a small agent on
+ * the shop LAN executes a fixed set of actions and reports back.
+ *
+ * The default transport is a persistent socket — see `./bridgeSync`, which is
+ * re-exported here: the server pushes jobs and telemetry sources down and the
+ * agent pushes results and run events up, with nothing polled on either side.
+ *
+ * The `createBridgeHandlers` poll/report/telemetry routes below are the
+ * LEGACY FALLBACK, kept for shops behind proxies that block WebSockets. They
+ * are framework-agnostic (mount them on any three HTTP routes) and every
+ * telemetry field is optional, so an older agent keeps working unchanged.
+ */
+
+import type {
+  MachineRunEvent,
+  TelemetryBinding,
+  TelemetryKind,
+} from "./telemetry";
+import { isMachineRunEvent } from "./telemetry";
 
 export type BridgeAction =
   | { kind: "folder"; path: string }
@@ -47,6 +63,8 @@ export type BridgeInfo = {
   hostname: string;
   capabilities: BridgeActionKind[];
   printers?: string[];
+  /** Telemetry paths this agent can watch (absent on pre-0.2 agents). */
+  telemetry?: TelemetryKind[];
 };
 
 export type BridgeStatus = {
@@ -66,6 +84,14 @@ export type BridgeStore = {
   heartbeat: (bridgeId: string, info: BridgeInfo) => Promise<void>;
   status: (bridgeId: string) => Promise<BridgeStatus>;
   list?: (bridgeId: string, limit: number) => Promise<BridgeJob[]>;
+  /** Jobs still owed to a bridge — what a reconnecting socket hydrates with. */
+  pending?: (bridgeId: string) => Promise<BridgeJob[]>;
+  /** Telemetry sources this bridge should watch, per machine. */
+  readings?: (bridgeId: string) => Promise<TelemetryBinding[]>;
+  /** Store run events the agent reported. */
+  record?: (bridgeId: string, events: MachineRunEvent[]) => Promise<void>;
+  /** Most recent stored run events (newest first) — mirrors `list`. */
+  records?: (bridgeId: string, limit: number) => Promise<MachineRunEvent[]>;
 };
 
 export type MemoryBridgeStoreOptions = {
@@ -74,6 +100,10 @@ export type MemoryBridgeStoreOptions = {
   /** Claimed jobs the agent never reported on go back to `queued` after this (default 5 min). */
   claimTimeoutMs?: number;
   now?: () => Date;
+  /** Telemetry sources per bridge id, for `readings`. */
+  sources?: Record<string, TelemetryBinding[]>;
+  /** Run events kept per bridge (default 1000). */
+  maxEvents?: number;
 };
 
 const isBridgeAction = (value: unknown): value is BridgeAction => {
@@ -137,6 +167,9 @@ export const createMemoryBridgeStore = (
   const now = options.now ?? (() => new Date());
   const jobs = new Map<string, BridgeJob>();
   const seen = new Map<string, { at: Date; info: BridgeInfo }>();
+  const sources = options.sources ?? {};
+  const maxEvents = options.maxEvents ?? 1000;
+  const events = new Map<string, MachineRunEvent[]>();
 
   const requeueStale = () => {
     const cutoff = now().getTime() - claimTimeoutMs;
@@ -191,6 +224,22 @@ export const createMemoryBridgeStore = (
     heartbeat: async (bridgeId, info) => {
       seen.set(bridgeId, { at: now(), info });
     },
+    pending: async (bridgeId) =>
+      [...jobs.values()]
+        .filter(
+          (job) =>
+            job.bridgeId === bridgeId &&
+            (job.status === "queued" || job.status === "claimed"),
+        )
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+        .map((job) => structuredClone(job)),
+    readings: async (bridgeId) => [...(sources[bridgeId] ?? [])],
+    record: async (bridgeId, incoming) => {
+      const kept = [...(events.get(bridgeId) ?? []), ...incoming];
+      events.set(bridgeId, kept.slice(-maxEvents));
+    },
+    records: async (bridgeId, limit) =>
+      [...(events.get(bridgeId) ?? [])].reverse().slice(0, Math.max(0, limit)),
     list: async (bridgeId, limit) =>
       [...jobs.values()]
         .filter((job) => job.bridgeId === bridgeId)
@@ -219,7 +268,8 @@ export type BridgeHandlerOptions = {
 
 export type BridgePollRequest = { token: string; info?: BridgeInfo };
 export type BridgePollResponse =
-  { jobs: BridgeJob[] } | { error: "unauthorized" };
+  | { jobs: BridgeJob[]; sources?: TelemetryBinding[] }
+  | { error: "unauthorized" };
 export type BridgeReportRequest = {
   token: string;
   jobId: string;
@@ -228,12 +278,30 @@ export type BridgeReportRequest = {
 export type BridgeReportResponse =
   { ok: true } | { error: "unauthorized" | "invalid-result" | "unknown-job" };
 
+export type BridgeTelemetryRequest = {
+  token: string;
+  events: MachineRunEvent[];
+};
+export type BridgeTelemetryResponse =
+  | { ok: true; recorded: number }
+  | { error: "unauthorized" | "invalid-events" | "not-supported" };
+
 export type BridgeHandlers = {
   poll: (request: BridgePollRequest) => Promise<BridgePollResponse>;
   report: (request: BridgeReportRequest) => Promise<BridgeReportResponse>;
+  telemetry: (
+    request: BridgeTelemetryRequest,
+  ) => Promise<BridgeTelemetryResponse>;
 };
 
-/** Framework-agnostic handlers: mount `poll` on POST /bridge/poll and `report` on POST /bridge/report. */
+/**
+ * LEGACY FALLBACK transport. Mount `poll` on POST /bridge/poll, `report` on
+ * POST /bridge/report and `telemetry` on POST /bridge/telemetry for shops
+ * whose network blocks WebSockets. The default path is the socket
+ * (`createBridgeSync`); these handlers stay supported and unchanged in
+ * behaviour, with the telemetry source list added to the poll response so a
+ * fallback agent needs no extra round-trip.
+ */
 export const createBridgeHandlers = (
   store: BridgeStore,
   options: BridgeHandlerOptions,
@@ -246,8 +314,11 @@ export const createBridgeHandlers = (
       if (!auth) return { error: "unauthorized" };
       if (info) await store.heartbeat(auth.bridgeId, info);
       const jobs = await store.claim(auth.bridgeId, maxJobs);
+      const sources = store.readings
+        ? await store.readings(auth.bridgeId)
+        : undefined;
 
-      return { jobs };
+      return sources === undefined ? { jobs } : { jobs, sources };
     },
     report: async ({ token, jobId, result }) => {
       const auth = await options.authenticate(token);
@@ -263,8 +334,23 @@ export const createBridgeHandlers = (
 
       return { ok: true };
     },
+    telemetry: async ({ token, events }) => {
+      const auth = await options.authenticate(token);
+      if (!auth) return { error: "unauthorized" };
+      if (!Array.isArray(events)) return { error: "invalid-events" };
+      const valid = events.filter(isMachineRunEvent);
+      if (events.length > 0 && valid.length === 0) {
+        return { error: "invalid-events" };
+      }
+      if (!store.record) return { error: "not-supported" };
+      await store.record(auth.bridgeId, valid);
+
+      return { ok: true, recorded: valid.length };
+    },
   };
 };
+
+export * from "./bridgeSync";
 
 export const bytesToBase64 = (bytes: Uint8Array) =>
   Buffer.from(bytes).toString("base64");

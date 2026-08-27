@@ -5,6 +5,12 @@ import {
 } from "@absolutejs/manifest";
 import { Type } from "@sinclair/typebox";
 import type { MachineRegistry, MachineRegistryConfig } from "./index";
+import {
+  TELEMETRY_LABELS,
+  telemetryDelivery,
+  telemetryHelp,
+  telemetryKindsFor,
+} from "./telemetry";
 
 const tool = toolFactory<MachineRegistry>();
 
@@ -30,6 +36,7 @@ export const manifest = defineManifest<
     audiences: ["commerce-platforms", "application-developers"],
     intents: [
       "list the embroidery, print, cutter, laser and label machines a shop can own",
+      "find out how a machine's run time can be measured automatically",
       "convert embroidery files between DST, EXP, PES and JEF",
       "export a production job in the file format a machine accepts",
     ],
@@ -42,6 +49,7 @@ export const manifest = defineManifest<
       "dtf",
       "zpl",
       "machines",
+      "telemetry",
     ],
     protocols: [
       "Tajima DST",
@@ -55,7 +63,7 @@ export const manifest = defineManifest<
     accent: "#0f766e",
     category: "commerce",
     description:
-      "Machine registry and file encoders for `@absolutejs/commerce` production: every embroidery head, DTG/DTF/sublimation printer, vinyl cutter, laser and label printer a shop is likely to own, the formats and connections each accepts, and DST/EXP/PES/JEF stitch codecs to export a job for it. No network I/O.",
+      "Machine registry and file encoders for `@absolutejs/commerce` production: every embroidery head, DTG/DTF/sublimation printer, vinyl cutter, laser and label printer a shop is likely to own, the formats and connections each accepts, DST/EXP/PES/JEF stitch codecs to export a job for it, and the telemetry paths that measure real machine minutes. The core is pure data and file encoding — no network I/O.",
     docsUrl:
       "https://github.com/absolutejs/commerce-adapters/tree/main/machines",
     name: "@absolutejs/commerce-machines",
@@ -123,6 +131,33 @@ export const manifest = defineManifest<
           })),
         ),
       input: Type.Object({ kind: Type.Optional(kindSchema) }),
+    }),
+    machine_telemetry_options: tool.runtime({
+      annotations: { idempotentHint: true, readOnlyHint: true },
+      authorization: {
+        approval: "never",
+        audience: "authenticated",
+        effects: ["read"],
+        requiredScopes: ["machines:read"],
+        reversible: false,
+      },
+      description:
+        "How a machine's run time can be measured: the telemetry paths worth offering for it, whether each one is pushed by the hardware, watched on the filesystem or entered by hand, and what to ask the shop. Suggestions only — never a claim the machine was tested.",
+      handler: ({ machineId }, registry) => {
+        const provider = registry.get(machineId);
+        if (!provider)
+          return JSON.stringify({ error: `unknown machine ${machineId}` });
+
+        return JSON.stringify(
+          telemetryKindsFor(provider).map((kind) => ({
+            delivery: telemetryDelivery(kind),
+            help: telemetryHelp(kind),
+            kind,
+            label: TELEMETRY_LABELS[kind],
+          })),
+        );
+      },
+      input: Type.Object({ machineId: Type.String() }),
     }),
     machine_checklist: tool.runtime({
       annotations: { idempotentHint: true, readOnlyHint: true },

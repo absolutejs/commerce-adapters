@@ -10,12 +10,13 @@
     },
     "bridge": {
       "name": "@absolutejs/machines-bridge",
-      "version": "0.1.0-beta.0",
+      "version": "0.2.0-beta.0",
       "bin": {
         "absolutejs-machines-bridge": "./dist/cli.js",
       },
       "dependencies": {
-        "@absolutejs/commerce-machines": "0.2.0-beta.0",
+        "@absolutejs/commerce-machines": "0.3.0-beta.0",
+        "@absolutejs/sync": "^2.30.0",
       },
       "devDependencies": {
         "@types/bun": "1.3.14",
@@ -62,7 +63,7 @@
     },
     "machines": {
       "name": "@absolutejs/commerce-machines",
-      "version": "0.2.0-beta.0",
+      "version": "0.3.0-beta.0",
       "dependencies": {
         "@absolutejs/manifest": "0.9.0",
         "@sinclair/typebox": "0.34.52",
@@ -161,7 +162,7 @@
 
     "@absolutejs/pwa": ["@absolutejs/pwa@0.13.0", "", { "dependencies": { "@absolutejs/manifest": "^0.9.0", "@absolutejs/sync": "2.29.0", "@sinclair/typebox": "^0.34.0", "web-push": "^3.6.7" } }, "sha512-j0voFLKSROl2G2rFF0jRgFYi7Y6Ws83kWmv9Xju1z24U0ccbhlhtQxXTYULmos30U935tVdU+cHLN2XDbHIoeQ=="],
 
-    "@absolutejs/sync": ["@absolutejs/sync@2.29.0", "", { "dependencies": { "@absolutejs/manifest": "^0.9.0", "@absolutejs/telemetry": ">=0.2.0 <0.4.0", "@sinclair/typebox": "^0.34.0" }, "peerDependencies": { "@absolutejs/isolated-jsc": ">=0.12.2 <0.13.0", "@angular/core": ">=21.2.18 <22", "@elysia/cron": "^2.0.0-beta.1", "@modelcontextprotocol/sdk": ">=1.29.0 <2", "@tanstack/db": ">=0.6.16 <0.7", "drizzle-orm": ">=1.0.0-rc.4 <2", "elysia": "^2.0.0-beta.6", "react": ">=19.2.8 <20", "svelte": ">=5.56.7 <6", "vue": ">=3.5.40 <4" }, "optionalPeers": ["@absolutejs/isolated-jsc", "@angular/core", "@elysia/cron", "@modelcontextprotocol/sdk", "@tanstack/db", "drizzle-orm", "elysia", "react", "svelte", "vue"] }, "sha512-N+xGHxRMuR/pLbIPK3eWG6JcdU312lNBIBiM72jyCKilxFoIoyOnVqWrwHn+lFYf3HggXko8tLGwxMg7nGpBJA=="],
+    "@absolutejs/sync": ["@absolutejs/sync@2.30.0", "", { "dependencies": { "@absolutejs/manifest": "^0.9.0", "@absolutejs/telemetry": ">=0.2.0 <0.4.0", "@sinclair/typebox": "^0.34.0" }, "peerDependencies": { "@absolutejs/isolated-jsc": ">=0.12.2 <0.13.0", "@angular/core": ">=21.2.18 <22", "@elysia/cron": "^2.0.0-beta.1", "@modelcontextprotocol/sdk": ">=1.29.0 <2", "@tanstack/db": ">=0.6.16 <0.7", "drizzle-orm": ">=1.0.0-rc.4 <2", "elysia": "^2.0.0-beta.6", "react": ">=19.2.8 <20", "svelte": ">=5.56.7 <6", "vue": ">=3.5.40 <4" }, "optionalPeers": ["@absolutejs/isolated-jsc", "@angular/core", "@elysia/cron", "@modelcontextprotocol/sdk", "@tanstack/db", "drizzle-orm", "elysia", "react", "svelte", "vue"] }, "sha512-aJdXm/udFyOGhHI9LfZ4HzZCAwfoKllOlbiLc7IIxNtJSYJS5eO9D+p9NWlXk2dZRrTw70cHRCxWThX+yRiKJQ=="],
 
     "@absolutejs/telemetry": ["@absolutejs/telemetry@0.3.1", "", { "dependencies": { "@absolutejs/handoff": "0.1.0" }, "peerDependencies": { "drizzle-orm": ">=1.0.0-rc.4 <2" }, "optionalPeers": ["drizzle-orm"] }, "sha512-Apd/FfS1BbDyeMDwoWsSx8ql5MeLjLY7MQn0yAHz1T1wxqpnQgFTdYKbvqcfAJ6/hpQLTHw4EY/QkihwtQuPjQ=="],
 
@@ -458,6 +459,8 @@
     "@absolutejs/execution/@absolutejs/manifest": ["@absolutejs/manifest@0.7.2", "", { "peerDependencies": { "@sinclair/typebox": ">=0.34.0 <0.35.0" }, "bin": { "absolute-manifest": "dist/cli.js" } }, "sha512-NSVzC4yHbH+n+WCNdWYrpbc+3k5rOfO4X85Ku9VCP8teRaa2VEibp29Cyvg9rQARUGaQjGGTz+l+APqM0+odxg=="],
 
     "@absolutejs/handoff/@absolutejs/manifest": ["@absolutejs/manifest@0.7.2", "", { "peerDependencies": { "@sinclair/typebox": ">=0.34.0 <0.35.0" }, "bin": { "absolute-manifest": "dist/cli.js" } }, "sha512-NSVzC4yHbH+n+WCNdWYrpbc+3k5rOfO4X85Ku9VCP8teRaa2VEibp29Cyvg9rQARUGaQjGGTz+l+APqM0+odxg=="],
+
+    "@absolutejs/pwa/@absolutejs/sync": ["@absolutejs/sync@2.29.0", "", { "dependencies": { "@absolutejs/manifest": "^0.9.0", "@absolutejs/telemetry": ">=0.2.0 <0.4.0", "@sinclair/typebox": "^0.34.0" }, "peerDependencies": { "@absolutejs/isolated-jsc": ">=0.12.2 <0.13.0", "@angular/core": ">=21.2.18 <22", "@elysia/cron": "^2.0.0-beta.1", "@modelcontextprotocol/sdk": ">=1.29.0 <2", "@tanstack/db": ">=0.6.16 <0.7", "drizzle-orm": ">=1.0.0-rc.4 <2", "elysia": "^2.0.0-beta.6", "react": ">=19.2.8 <20", "svelte": ">=5.56.7 <6", "vue": ">=3.5.40 <4" }, "optionalPeers": ["@absolutejs/isolated-jsc", "@angular/core", "@elysia/cron", "@modelcontextprotocol/sdk", "@tanstack/db", "drizzle-orm", "elysia", "react", "svelte", "vue"] }, "sha512-N+xGHxRMuR/pLbIPK3eWG6JcdU312lNBIBiM72jyCKilxFoIoyOnVqWrwHn+lFYf3HggXko8tLGwxMg7nGpBJA=="],
 
     "@neondatabase/serverless/@types/node": ["@types/node@22.20.1", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-EANqOCF9QFyra+4pfxUcX9STKJpCLjMbObVzljIJomAWSnuSIEAvyzEU53GaajbXJEgdh0iEcPL+DGvpUd4k1Q=="],
 

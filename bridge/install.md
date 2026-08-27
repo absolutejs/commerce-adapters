@@ -23,9 +23,11 @@ bunx @absolutejs/machines-bridge --server https://shop.example --token XXXX --on
 ```
 
 The first command shows the print queues this computer can see (their names
-are what the app calls `printer` for the `os-print` action). The second polls
-one time and exits. Then run without `--once` and the app should show the
-bridge as online within a few seconds.
+are what the app calls `printer` for the `os-print` action). The second opens
+the socket, does one pass of work and exits. Then run it without `--once`: it
+holds the connection open and the app shows the bridge as online immediately.
+The bridge only makes **outbound** connections to your app — no port forwarding,
+no VPN, no inbound firewall rule.
 
 ## Run it as a service
 
@@ -144,3 +146,78 @@ through.
 - IPP printers answer at `ipp://<ip>:631/ipp/print` (CUPS queues:
   `ipp://<host>:631/printers/<queue>`). Test with `ipptool -tv
 ipp://<ip>:631/ipp/print get-printer-attributes.test` (part of CUPS).
+
+## Measuring machine time (telemetry)
+
+Each machine in the app's settings can have one telemetry source. The bridge
+watches whatever the app sends it — nothing is configured on this side beyond
+the ports below. Every path is push- or event-driven; the bridge never asks a
+machine for its status on a timer. Use `--probe` to check a source before you
+save it, and `--telemetry-help <kind>` for the plain-English explanation.
+
+### Production report folder (embroidery heads, DTG/DTF RIPs)
+
+1. In the machine's software (Tajima DG / Network Manager, Melco OS, Barudan
+   LEM, the Ricoma panel, or the RIP's job-log settings) switch on writing a
+   production report per run and note the folder it writes to.
+2. Make sure the bridge computer can read that folder — a local path, or a
+   mapped share like `\\SHOP-PC\Reports`.
+3. Test it: `bunx @absolutejs/machines-bridge --probe report-folder --path
+"\\SHOP-PC\Reports" --parser tajima-report`. It prints the reading it got
+   from the newest file.
+4. Files already in the folder when the bridge first sees it are adopted, not
+   re-imported, and nothing is ever moved or deleted. A `.absolutejs-seen`
+   sidecar is written there so a restart does not replay history.
+
+On network shares the OS sometimes drops change notifications, so the bridge
+also rescans the folder every five minutes as a safety net.
+
+### Zebra and Zebra-compatible label printers
+
+The printer pushes alerts; the bridge holds a connection open to read them and
+also listens on TCP 9200 for printers configured to dial the bridge PC.
+Configure the alerts once from a PC on the same network — send this to port
+9100 (adjust the address to the bridge computer):
+
+```
+~SXA,C,Y,Y,192.168.1.99,9200      # media out, set and clear
+~SXB,C,Y,Y,192.168.1.99,9200      # ribbon out
+~SXD,C,Y,Y,192.168.1.99,9200      # printhead open
+~SXP,C,Y,Y,192.168.1.99,9200      # printer paused
+~SXQ,C,Y,Y,192.168.1.99,9200      # batch (PQ) completed
+```
+
+Link-OS printers can do the same through `alerts.add` in the printer's web
+page (Alerts → Add), destination TCP, address = the bridge PC, port 9200.
+Check the connection first with
+`bunx @absolutejs/machines-bridge --probe raw-tcp-status --host 192.168.1.50`,
+which sends one `~HS` and prints the decoded status. Allow inbound TCP 9200 on
+the bridge computer's firewall.
+
+### SNMP traps (networked DTG/DTF/sublimation and office-class printers)
+
+In the printer's web page find SNMP (often under Network → Protocols):
+
+1. Enable SNMP v1/v2c and note the community string (`public` unless the shop
+   changed it).
+2. Add a **trap destination**: the bridge computer's IP, UDP port 162.
+3. Test the read path with
+   `bunx @absolutejs/machines-bridge --probe snmp-printer --host 192.168.1.60`.
+
+Ports below 1024 need root on Linux/macOS. Either run the service as root, give
+Bun the capability (`sudo setcap 'cap_net_bind_service=+ep' ~/.bun/bin/bun`), or
+set the printer's trap port to something above 1024 and put the same number in
+the app's machine settings. Allow inbound UDP 162 on the firewall.
+
+### Webhook from the machine's software
+
+The bridge serves `http://<bridge-pc>:8787/telemetry/<machine-id>` (change the
+port with `--webhook-port`). Paste that URL, plus the secret from the app's
+machine settings, into the RIP or controller's notification/webhook settings —
+Kornit, Kothari, Caldera, VersaWorks and several DTG and laser controllers have
+one. The bridge accepts JSON or plain text and rejects posts without the
+secret. Allow inbound TCP 8787 on the firewall.
+
+If a machine's software cannot notify anything and can only be asked, leave
+that machine on **manual** in the app. Manual measures nothing and says so —
+that is better than a number nobody can trust.

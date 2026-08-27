@@ -145,7 +145,7 @@ describe("executors", () => {
   });
 });
 
-describe("runBridge against the reference handlers", () => {
+describe("legacy HTTP-poll fallback against the reference handlers", () => {
   test("poll → execute → report", async () => {
     const dir = await mkdtemp(join(tmpdir(), "abs-bridge-loop-"));
     const store = createMemoryBridgeStore();
@@ -180,6 +180,13 @@ describe("runBridge against the reference handlers", () => {
           await handlers.report(body as Parameters<typeof handlers.report>[0]),
         );
       }
+      if (url.pathname === "/bridge/telemetry") {
+        return Response.json(
+          await handlers.telemetry(
+            body as Parameters<typeof handlers.telemetry>[0],
+          ),
+        );
+      }
 
       return new Response("nope", { status: 404 });
     };
@@ -191,9 +198,11 @@ describe("runBridge against the reference handlers", () => {
         log: (message) => logs.push(message),
         once: true,
         server: "https://shop.example/",
+        telemetry: false,
         token: "t",
+        transport: "http-poll",
       });
-      expect(summary).toEqual({ executed: 1, failed: 0, polls: 1 });
+      expect(summary).toEqual({ events: 0, executed: 1, failed: 0, polls: 1 });
       expect(await readFile(join(dir, "hot", "a.dst"), "utf8")).toBe("x");
       const listed = await store.list!("desk", 1);
       expect(listed[0]?.status).toBe("done");
@@ -213,9 +222,16 @@ describe("runBridge against the reference handlers", () => {
       log: () => {},
       once: true,
       server: "https://shop.example",
+      telemetry: false,
       token: "wrong",
+      transport: "http-poll",
     });
-    expect(unauthorized).toEqual({ executed: 0, failed: 0, polls: 1 });
+    expect(unauthorized).toEqual({
+      events: 0,
+      executed: 0,
+      failed: 0,
+      polls: 1,
+    });
   });
 
   test("network errors do not throw in --once mode", async () => {
@@ -227,7 +243,9 @@ describe("runBridge against the reference handlers", () => {
       log: () => {},
       once: true,
       server: "http://127.0.0.1:9",
+      telemetry: false,
       token: "t",
+      transport: "http-poll",
     });
     expect(summary.polls).toBe(0);
   });
@@ -247,9 +265,11 @@ describe("cli args", () => {
       ]),
     ).toEqual({
       help: false,
+      httpPoll: false,
       interval: 5,
       listPrinters: false,
       noPrinters: false,
+      noTelemetry: false,
       once: true,
       server: "https://x",
       token: "t",
