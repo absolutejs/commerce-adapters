@@ -8,6 +8,8 @@ Provider adapters for [`@absolutejs/commerce`](https://github.com/absolutejs/com
 - `@absolutejs/commerce-easypost` — shipping rates + labels (EasyPost)
 - `@absolutejs/commerce-resend` — transactional email (Resend)
 - `@absolutejs/commerce-customcat` — print-on-demand fulfillment (CustomCat)
+- `@absolutejs/commerce-machines` — machine registry, stitch codecs, send-to-machine transports
+- `@absolutejs/machines-bridge` — shop-LAN bridge agent (CLI) for the transports above
 
 Each adapter is an independently versioned npm package (Apache-2.0). This
 repository is the source monorepo.

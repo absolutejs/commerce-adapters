@@ -96,3 +96,39 @@ export const createMachineRegistry = (
     providers,
   };
 };
+
+export type {
+  BridgeAction,
+  BridgeActionKind,
+  BridgeFile,
+  BridgeHandlers,
+  BridgeInfo,
+  BridgeJob,
+  BridgeJobStatus,
+  BridgeStatus,
+  BridgeStore,
+  SendResult,
+} from "./bridge";
+export {
+  BRIDGE_ACTION_KINDS,
+  createBridgeHandlers,
+  createMemoryBridgeStore,
+} from "./bridge";
+export type {
+  MachineTarget,
+  MachineTransport,
+  MachineTransportKind,
+  MachineTransports,
+  SendContext,
+  TransportField,
+} from "./transports";
+export {
+  MACHINE_TRANSPORT_KINDS,
+  TRANSPORT_LABELS,
+  createTransports,
+  describeTarget,
+  probeMachine,
+  sendToMachine,
+  transportFieldsFor,
+  transportHelp,
+} from "./transports";

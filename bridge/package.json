@@ -1,0 +1,53 @@
+{
+  "name": "@absolutejs/machines-bridge",
+  "version": "0.1.0-beta.0",
+  "description": "Shop-LAN bridge agent for @absolutejs/commerce-machines: polls your app for print/embroidery jobs and delivers them to a hot folder, a printer port (TCP 9100), an IPP printer or the OS print queue. No arbitrary command execution.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/absolutejs/commerce-adapters.git",
+    "directory": "bridge"
+  },
+  "homepage": "https://github.com/absolutejs/commerce-adapters/tree/main/bridge",
+  "bugs": {
+    "url": "https://github.com/absolutejs/commerce-adapters/issues"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "install.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "absolutejs-machines-bridge": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "license": "Apache-2.0",
+  "author": "Alex Kahn",
+  "engines": {
+    "bun": ">=1.1"
+  },
+  "scripts": {
+    "build": "rm -rf dist && bun build ./src/index.ts ./src/cli.ts --root ./src --outdir dist --target bun --external @absolutejs/commerce-machines --external '@absolutejs/commerce-machines/*' && tsc --emitDeclarationOnly --project tsconfig.json && chmod +x dist/cli.js",
+    "format": "prettier --write \"./**/*.{js,ts,json,md}\"",
+    "release": "bun run check:package && npm publish --access public --tag beta",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "check:package": "bun run format && bun run typecheck && bun run test && bun run build"
+  },
+  "dependencies": {
+    "@absolutejs/commerce-machines": "0.2.0-beta.0"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.14",
+    "prettier": "3.9.6",
+    "typescript": "5.9.3"
+  }
+}
