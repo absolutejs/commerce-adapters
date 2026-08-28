@@ -98,14 +98,14 @@
     },
     "stripe": {
       "name": "@absolutejs/commerce-stripe",
-      "version": "0.25.1-beta.9",
+      "version": "0.25.1-beta.10",
       "dependencies": {
         "@absolutejs/manifest": "0.9.0",
         "@sinclair/typebox": "0.34.52",
         "stripe": "22.3.2",
       },
       "devDependencies": {
-        "@absolutejs/commerce": "0.40.1-beta.43",
+        "@absolutejs/commerce": "0.40.1-beta.44",
         "@types/bun": "1.3.14",
         "prettier": "3.9.6",
         "typescript": "5.9.3",
@@ -454,7 +454,7 @@
 
     "@absolutejs/commerce/@absolutejs/manifest": ["@absolutejs/manifest@0.7.2", "", { "peerDependencies": { "@sinclair/typebox": ">=0.34.0 <0.35.0" }, "bin": { "absolute-manifest": "dist/cli.js" } }, "sha512-NSVzC4yHbH+n+WCNdWYrpbc+3k5rOfO4X85Ku9VCP8teRaa2VEibp29Cyvg9rQARUGaQjGGTz+l+APqM0+odxg=="],
 
-    "@absolutejs/commerce-stripe/@absolutejs/commerce": ["@absolutejs/commerce@0.40.1-beta.43", "", { "dependencies": { "@absolutejs/handoff": "0.1.0", "@absolutejs/manifest": "0.7.2", "@sinclair/typebox": "0.34.52", "fflate": "0.8.3" }, "peerDependencies": { "@react-three/drei": ">=10.7.7 <11", "@react-three/fiber": ">=9.6.1 <10", "drizzle-orm": ">=1.0.0-rc.4 <2", "react": ">=18 <20", "three": ">=0.185.0 <0.186.0" }, "optionalPeers": ["@react-three/drei", "@react-three/fiber", "drizzle-orm", "react", "three"] }, "sha512-K/VxYC4BXiefx4A528wxY4GCaVynanQQwXpYxBWeOups7Tm/WQ0V5PTe8+AqFQZCJ8biWQ/qLaoDqLc0ysLYJA=="],
+    "@absolutejs/commerce-stripe/@absolutejs/commerce": ["@absolutejs/commerce@0.40.1-beta.44", "", { "dependencies": { "@absolutejs/handoff": "0.1.0", "@absolutejs/manifest": "0.7.2", "@sinclair/typebox": "0.34.52", "fflate": "0.8.3" }, "peerDependencies": { "@react-three/drei": ">=10.7.7 <11", "@react-three/fiber": ">=9.6.1 <10", "drizzle-orm": ">=1.0.0-rc.4 <2", "react": ">=18 <20", "three": ">=0.185.0 <0.186.0" }, "optionalPeers": ["@react-three/drei", "@react-three/fiber", "drizzle-orm", "react", "three"] }, "sha512-q/kNvqVsQIa5fQyul2uxKw63sCLKGigit68u4LSnw6qbf4Ousqy9phYb3u6g912b03BPUWzThscHWfO/toOIhw=="],
 
     "@absolutejs/execution/@absolutejs/manifest": ["@absolutejs/manifest@0.7.2", "", { "peerDependencies": { "@sinclair/typebox": ">=0.34.0 <0.35.0" }, "bin": { "absolute-manifest": "dist/cli.js" } }, "sha512-NSVzC4yHbH+n+WCNdWYrpbc+3k5rOfO4X85Ku9VCP8teRaa2VEibp29Cyvg9rQARUGaQjGGTz+l+APqM0+odxg=="],
 

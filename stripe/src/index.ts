@@ -333,6 +333,14 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
 
     return {
       amountTotalCents: session.amount_total,
+      // Stripe reports every part of the total it charged; a missing one is
+      // a part it did not charge, not a part it does not know.
+      totals: {
+        discountCents: session.total_details?.amount_discount ?? 0,
+        shippingCents: session.total_details?.amount_shipping ?? 0,
+        subtotalCents: session.amount_subtotal ?? 0,
+        taxCents: session.total_details?.amount_tax ?? 0,
+      },
       currency: session.currency,
       customerEmail: details?.email ?? null,
       customerName: details?.name ?? null,
