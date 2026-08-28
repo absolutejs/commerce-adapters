@@ -425,6 +425,29 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
         ? { return_url: input.returnUrl, ui_mode: "embedded_page" }
         : { cancel_url: input.cancelUrl, success_url: input.successUrl };
 
+    // Stripe reads the place of supply off the Customer when the page
+    // collects no address of its own, so a known destination has to become
+    // one: a customer created for this session carrying the address and
+    // nothing else, so nothing about the payer is assumed. Skipped when
+    // there is no tax to calculate, or when the page collects an address of
+    // its own — Stripe prefers that one, and it costs nothing to gather.
+    const taxCustomer =
+      input.taxAddress &&
+      input.automaticTax &&
+      input.shipping?.mode !== "collect"
+        ? await stripe.customers.create({
+            address: {
+              city: input.taxAddress.city,
+              country: input.taxAddress.country,
+              line1: input.taxAddress.line1,
+              line2: input.taxAddress.line2,
+              postal_code: input.taxAddress.postalCode,
+              state: input.taxAddress.state,
+            },
+            ...(input.taxAddress.name ? { name: input.taxAddress.name } : {}),
+          })
+        : null;
+
     const params: Stripe.Checkout.SessionCreateParams = {
       line_items: lineItems,
       metadata: input.metadata,
@@ -436,25 +459,40 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
         ? {}
         : { payment_intent_data: { metadata: input.metadata } }),
       ...(input.couponId ? { discounts: [{ coupon: input.couponId }] } : {}),
+      // No `customer_update`: the address the merchant gave is the one that
+      // stands, whatever the payer types into the billing field.
+      ...(taxCustomer ? { customer: taxCustomer.id } : {}),
       ...(subscription ? {} : shippingParams),
       ...uiParams,
     };
 
-    const create = (withTax: boolean) =>
-      stripe.checkout.sessions.create(
+    const create = (withTax: boolean) => {
+      const withoutCustomer = { ...params };
+      if (!withTax) delete withoutCustomer.customer;
+
+      return stripe.checkout.sessions.create(
         input.automaticTax
-          ? { ...params, automatic_tax: { enabled: withTax } }
-          : params,
+          ? { ...withoutCustomer, automatic_tax: { enabled: withTax } }
+          : withoutCustomer,
         input.idempotencyKey
           ? { idempotencyKey: input.idempotencyKey }
           : undefined,
       );
+    };
 
     let session: Stripe.Checkout.Session;
     try {
       session = await create(Boolean(input.automaticTax));
     } catch (error) {
       if (!input.automaticTax || !isTaxError(error)) throw error;
+      // An account without Stripe Tax configured has no use for the place of
+      // supply, and the customer holding it would be litter.
+      if (taxCustomer)
+        await stripe.customers
+          .del(taxCustomer.id)
+          .catch((cleanup: unknown) =>
+            console.error("Stripe tax customer cleanup failed:", cleanup),
+          );
       session = await create(false);
     }
 
