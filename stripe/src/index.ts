@@ -376,37 +376,49 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
       quantity: line.quantity,
     }));
 
-    const shippingParams: Stripe.Checkout.SessionCreateParams =
-      input.shipping?.mode === "collect"
-        ? {
-            shipping_address_collection: {
-              allowed_countries: input.shipping
-                .countries as Stripe.Checkout.SessionCreateParams.ShippingAddressCollection["allowed_countries"],
-            },
-            ...(input.shipping.flatAmountCents !== undefined
-              ? {
-                  shipping_options: [
-                    {
-                      shipping_rate_data: {
-                        display_name: input.shipping.label ?? "Shipping",
-                        fixed_amount: {
-                          amount: input.shipping.flatAmountCents,
-                          currency,
-                        },
-                        tax_behavior: "exclusive",
-                        // Stripe's shipping tax code: delivery charges then
-                        // follow each state's shipping-taxability rules
-                        // (allocated against the goods in the cart) instead
-                        // of being taxed as a general product.
-                        tax_code: "txcd_92010001",
-                        type: "fixed_amount",
-                      },
-                    },
-                  ],
-                }
-              : {}),
-          }
-        : {};
+    // One fixed freight line, however the address was obtained. Stripe's
+    // shipping tax code makes the charge follow each state's
+    // shipping-taxability rules (allocated against the goods in the cart)
+    // instead of being taxed as a general product.
+    const shippingRate = (
+      flatAmountCents: number,
+      label: string | undefined,
+    ): Stripe.Checkout.SessionCreateParams.ShippingOption => ({
+      shipping_rate_data: {
+        display_name: label ?? "Shipping",
+        fixed_amount: { amount: flatAmountCents, currency },
+        tax_behavior: "exclusive",
+        tax_code: "txcd_92010001",
+        type: "fixed_amount",
+      },
+    });
+
+    let shippingParams: Stripe.Checkout.SessionCreateParams = {};
+    if (input.shipping?.mode === "collect")
+      shippingParams = {
+        shipping_address_collection: {
+          allowed_countries: input.shipping
+            .countries as Stripe.Checkout.SessionCreateParams.ShippingAddressCollection["allowed_countries"],
+        },
+        ...(input.shipping.flatAmountCents === undefined
+          ? {}
+          : {
+              shipping_options: [
+                shippingRate(
+                  input.shipping.flatAmountCents,
+                  input.shipping.label,
+                ),
+              ],
+            }),
+      };
+    // The merchant already knows where it goes, so charge for the trip and
+    // leave the address form off the page.
+    if (input.shipping?.mode === "charge")
+      shippingParams = {
+        shipping_options: [
+          shippingRate(input.shipping.flatAmountCents, input.shipping.label),
+        ],
+      };
 
     const uiParams: Stripe.Checkout.SessionCreateParams =
       input.uiMode === "embedded"
