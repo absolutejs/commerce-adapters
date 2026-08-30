@@ -1084,7 +1084,10 @@ export const telemetryKindsFor = (
        * from a vendor app that notifies nobody. */
       if (provider.connections.includes("lan")) kinds.add("http-status");
       break;
+    case "heat-press":
     case "screen":
+      // Nothing to ask: a press or a screen line reports through the
+      // operator, not over a wire.
       break;
   }
   kinds.add("manual");

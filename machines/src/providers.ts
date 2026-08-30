@@ -661,6 +661,193 @@ export const MACHINE_PROVIDERS: MachineProvider[] = [
     setup:
       "Send ZPL on port 9100 if the printer is on the network, otherwise print the label PDF through the driver.",
   },
+  // ---- Direct-to-film, the rest of the field ---------------------------
+  {
+    brand: "Epson",
+    connections: ["usb-cable", "lan"],
+    developerNotes:
+      "SureColor F2270 (hybrid DTG/DTF) and G6070 (dedicated DTF) print through Epson Garment Creator 2 or a RIP. Garment Creator watches no folder — the operator opens the file and prints — so the integration is a PNG the operator picks up, or a hot folder if they run CADlink instead. Ask which of the two they use, and whether an F2270 is loaded with DTF or DTG ink today: the same machine cannot do both at once.",
+    formats: ["png", "tiff", "pdf"],
+    id: "epson-dtf",
+    kind: "dtf",
+    models: ["SureColor F2270", "SureColor G6070"],
+    name: "Epson SureColor DTF",
+    setup:
+      "Provide a transparent PNG at 300 dpi at the finished size. The operator opens it in Garment Creator 2 (or the RIP), prints to film, powders and cures.",
+    software: ["Epson Garment Creator 2", "CADlink Digital Factory DTF"],
+  },
+  {
+    brand: "STS Inks",
+    connections: ["usb-cable", "lan"],
+    developerNotes:
+      "STS resells Mutoh-based roll units (VJ-628D, XPD-724) driven by CADlink or ErgoSoft. Roll width and whether they gang jobs onto one sheet decide whether we export one PNG per job or a laid-up sheet. Ask for the RIP's hot-folder path.",
+    formats: ["png", "tiff", "pdf"],
+    id: "sts-dtf",
+    kind: "dtf",
+    models: ["VJ-628D", "XPD-724", "XPD-1362"],
+    name: "STS / Mutoh DTF roll printer",
+    setup:
+      "Provide a transparent PNG at 300 dpi. The operator lays it up in the RIP with the other jobs on the roll, prints, powders and cures.",
+    software: ["CADlink Digital Factory DTF", "ErgoSoft"],
+  },
+  {
+    brand: "UniNet",
+    connections: ["usb-cable", "lan"],
+    developerNotes:
+      "iColor 560 / 650 / 800W are toner transfer printers, not inkjet: CMYK plus a white toner pass onto A4/A3 transfer paper through the iColor ProRIP. No powder, no cure — the sheet goes straight to the press. Ask which paper set they run (two-step vs standard), because it decides whether the art is mirrored.",
+    formats: ["png", "tiff", "pdf"],
+    id: "uninet-icolor",
+    kind: "dtf",
+    models: ["iColor 560", "iColor 650", "iColor 800W"],
+    name: "UniNet iColor transfer printer",
+    setup:
+      "Provide a transparent PNG at 300 dpi. The operator opens it in iColor ProRIP, picks the paper profile, prints and presses.",
+    software: ["iColor ProRIP"],
+  },
+  {
+    brand: "Roland",
+    connections: ["usb-cable", "lan"],
+    developerNotes:
+      "VersaSTUDIO BN-20A prints and cuts from VersaWorks; with DTF film and the transfer set it doubles as a small DTF unit. VersaWorks takes a hot folder. Ask whether the machine is loaded for DTF or for vinyl this week — it is one machine doing two jobs.",
+    formats: ["pdf", "png", "svg", "eps"],
+    id: "roland-bn20a-dtf",
+    kind: "dtf",
+    models: ["VersaSTUDIO BN-20A", "VersaSTUDIO BN2-20A"],
+    name: "Roland VersaSTUDIO (DTF)",
+    setup:
+      "Provide a PNG or PDF at the finished size. The operator loads it in VersaWorks, prints to film, powders and cures.",
+    software: ["Roland VersaWorks"],
+  },
+  // ---- Sublimation, the rest of the field ------------------------------
+  {
+    brand: "Generic",
+    connections: ["usb-cable", "wifi", "lan"],
+    developerNotes:
+      "The small-shop standard is a converted EcoTank (ET-2800 / ET-15000) filled with sublimation ink, printed from the plain Epson driver and mirrored by hand in the print dialogue. No RIP, no hot folder — the file is what the operator opens. Ask the paper size and whether they mirror in the driver or expect the file mirrored.",
+    formats: ["pdf", "png", "tiff"],
+    id: "generic-sublimation",
+    kind: "sublimation",
+    models: ["Converted EcoTank ET-2800", "Converted EcoTank ET-15000"],
+    name: "Converted desktop sublimation printer",
+    setup:
+      "Provide a PDF or PNG at the finished size, not mirrored — the operator mirrors it in the print dialogue, prints on transfer paper and presses.",
+    software: ["Epson printer driver", "Silhouette Studio"],
+  },
+  {
+    brand: "Mimaki",
+    connections: ["lan", "usb-cable"],
+    developerNotes:
+      "JV100 / JV300 wide-format dye-sub printers drive from RasterLink, which watches hot folders — a real integration surface: drop the file and RasterLink queues it. Ask for the hot-folder path and the roll width.",
+    formats: ["pdf", "tiff", "png", "eps"],
+    id: "mimaki-jv",
+    kind: "sublimation",
+    models: ["JV100-160", "JV300-130", "JV300-160"],
+    name: "Mimaki JV dye-sublimation",
+    setup:
+      "Provide a PDF or high-res TIFF at the finished size. The operator lays it up in RasterLink, prints to transfer paper and presses.",
+    software: ["Mimaki RasterLink"],
+  },
+  {
+    brand: "Roland",
+    connections: ["lan", "usb-cable"],
+    developerNotes:
+      "Texart RT-640 / XT-640 print from ErgoSoft Roland Edition, which has hot folders. Ask for the hot-folder path, the roll width and whether they nest jobs — nesting changes what we hand over.",
+    formats: ["pdf", "tiff", "png", "eps"],
+    id: "roland-texart",
+    kind: "sublimation",
+    models: ["Texart RT-640", "Texart XT-640"],
+    name: "Roland Texart dye-sublimation",
+    setup:
+      "Provide a PDF or TIFF at the finished size. The operator nests it in ErgoSoft, prints to transfer paper and presses.",
+    software: ["ErgoSoft Roland Edition"],
+  },
+  // ---- Cutters, the rest of the field ----------------------------------
+  {
+    brand: "Brother",
+    connections: ["usb-stick", "wifi", "usb-cable"],
+    developerNotes:
+      "ScanNCut DX cuts from CanvasWorkspace (cloud or desktop) and reads .fcm files off a USB stick; SVG import needs the desktop / Premium version. No API. Ask whether they cut from the stick or from CanvasWorkspace, because it decides whether an SVG on a stick is any use to them.",
+    formats: ["svg", "pdf", "png"],
+    id: "brother-scanncut",
+    kind: "vinyl",
+    models: ["ScanNCut DX", "ScanNCut SDX125", "ScanNCut DX2250D"],
+    name: "Brother ScanNCut",
+    setup:
+      "Provide an SVG of the cut lines. The operator imports it into CanvasWorkspace, mirrors it for heat-transfer vinyl, and cuts.",
+    software: ["CanvasWorkspace"],
+  },
+  // ---- Heat presses -----------------------------------------------------
+  {
+    brand: "Stahls' Hotronix",
+    connections: [],
+    developerNotes:
+      "Nothing to send: a press applies what another machine already made. The Fusion IQ has a network panel and Stahls' own job tracking, but no public API worth building against. Treat a press as a station on the ticket — time, temperature and pressure written down — not as a send target.",
+    formats: [],
+    id: "hotronix",
+    kind: "heat-press",
+    models: ["Fusion IQ", "Air Fusion IQ", "Dual Air Fusion IQ", "MAXX Clam"],
+    name: "Hotronix heat press",
+    setup:
+      "No file goes to a press. Set the time, temperature and pressure the transfer calls for, press, and peel hot or cold as the film says.",
+  },
+  {
+    brand: "Geo Knight",
+    connections: [],
+    developerNotes:
+      "DK20S / DK16 / Maxi presses are manual clamshell and swing-away units with a digital controller. No connectivity.",
+    formats: [],
+    id: "geo-knight",
+    kind: "heat-press",
+    models: ["DK20S", "DK16", "DK25S", "Maxi Press"],
+    name: "Geo Knight heat press",
+    setup:
+      "No file goes to a press. Dial in time, temperature and pressure, press, and peel as the transfer says.",
+  },
+  {
+    brand: "Hix",
+    connections: [],
+    developerNotes:
+      "Swingman and N-800 series: manual swing-away presses with a digital timer. No connectivity.",
+    formats: [],
+    id: "hix",
+    kind: "heat-press",
+    models: ["Swingman 15", "Swingman 20", "N-800"],
+    name: "Hix heat press",
+    setup:
+      "No file goes to a press. Set time, temperature and pressure, press, and peel as the transfer says.",
+  },
+  {
+    brand: "Cricut",
+    connections: [],
+    developerNotes:
+      "EasyPress 2 / 3 are hand presses; the 3 pairs to the Cricut Heat app over Bluetooth for its settings, which is a phone flow rather than something a shop system drives.",
+    formats: [],
+    id: "cricut-easypress",
+    kind: "heat-press",
+    models: ["EasyPress 2", "EasyPress 3", "EasyPress Mini"],
+    name: "Cricut EasyPress",
+    setup:
+      "No file goes to a press. Look the setting up in Cricut's heat guide, press, and peel as it says.",
+  },
+  {
+    brand: "Generic",
+    connections: [],
+    developerNotes:
+      "Any clamshell, swing-away, cap or mug press. Recorded so a job can be ticked through it and so its time and temperature live with the order.",
+    formats: [],
+    id: "generic-press",
+    kind: "heat-press",
+    models: [
+      "Clamshell 15x15",
+      "Swing-away 16x20",
+      "Cap press",
+      "Mug press",
+      "Tumbler press",
+    ],
+    name: "Any heat press",
+    setup:
+      "No file goes to a press. Set the time, temperature and pressure the transfer calls for, press, and peel hot or cold as the film says.",
+  },
   {
     brand: "Generic",
     connections: ["usb-cable", "lan"],
@@ -683,6 +870,14 @@ export const listMachineProviders = (kind?: MachineKind): MachineProvider[] =>
 
 export const getMachineProvider = (id: string): MachineProvider | undefined =>
   MACHINE_PROVIDERS.find((provider) => provider.id === id);
+
+/**
+ * Whether a machine takes a file at all. A heat press does not: it applies
+ * what another machine already made, and belongs on the ticket as a station
+ * rather than as somewhere to send artwork.
+ */
+export const machineTakesFiles = (provider: MachineProvider): boolean =>
+  provider.formats.length > 0;
 
 export const providersForFormat = (format: MachineFormat): MachineProvider[] =>
   MACHINE_PROVIDERS.filter((provider) => provider.formats.includes(format));

@@ -6,7 +6,11 @@ export type MachineKind =
   | "sublimation"
   | "vinyl"
   | "laser"
-  | "label";
+  | "label"
+  /** A press takes no file — it is here because the shop runs one, the job
+   *  passes through it, and its time, temperature and pressure are what get
+   *  written down. */
+  | "heat-press";
 
 export type MachineFormat =
   | "dst"

@@ -16,6 +16,7 @@ export {
   MACHINE_PROVIDERS,
   getMachineProvider,
   listMachineProviders,
+  machineTakesFiles,
   providersForFormat,
 } from "./providers";
 export {

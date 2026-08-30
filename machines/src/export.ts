@@ -249,6 +249,13 @@ const CHECKLISTS: Record<MachineKind, MachineChecklistStep[]> = {
     { key: "cured", label: "Cured" },
     { key: "qc", label: "Quality checked" },
   ],
+  "heat-press": [
+    { key: "transfer-ready", label: "Transfer printed / cut and ready" },
+    { key: "garment-placed", label: "Garment laid out and pressed flat" },
+    { key: "pressed", label: "Pressed at the time and temperature" },
+    { key: "peeled", label: "Carrier peeled" },
+    { key: "qc", label: "Quality checked" },
+  ],
   embroidery: [
     { key: "art-ready", label: "Digitized file approved" },
     { key: "file-loaded", label: "File loaded on the machine" },

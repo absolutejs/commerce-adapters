@@ -8,6 +8,7 @@ import {
   listMachineProviders,
   machineChecklist,
   providersForFormat,
+  machineTakesFiles,
   createMachineRegistry,
 } from "./index";
 import { buildProgram } from "./program";
@@ -20,8 +21,15 @@ describe("provider registry", () => {
   });
   test("every provider has formats, connections and substantial notes", () => {
     for (const provider of MACHINE_PROVIDERS) {
-      expect(provider.formats.length).toBeGreaterThan(0);
-      expect(provider.connections.length).toBeGreaterThan(0);
+      // A press takes no file and plugs into nothing — it is on the list so
+      // the shop can tick a job through it, not so we can send to it.
+      const takesFiles = machineTakesFiles(provider);
+      expect(provider.formats.length).toBeGreaterThan(takesFiles ? 0 : -1);
+      expect(provider.connections.length).toBeGreaterThan(takesFiles ? 0 : -1);
+      if (!takesFiles) {
+        expect(provider.kind).toBe("heat-press");
+        expect(provider.connections).toEqual([]);
+      }
       expect(new Set(provider.formats).size).toBe(provider.formats.length);
       expect(provider.setup.length).toBeGreaterThanOrEqual(40);
       expect(provider.developerNotes.length).toBeGreaterThanOrEqual(40);
