@@ -2,6 +2,8 @@ import { CUSTOMCAT_API_BASE_URL } from "./constants";
 
 export type CustomCatHttpConfig = {
   apiKey: string;
+  /** Bound catalog and inventory lookups; default 30 seconds. */
+  timeoutMs?: number;
   baseUrl?: string;
   fetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 };
@@ -26,7 +28,10 @@ export const createCustomCatRequest = (config: CustomCatHttpConfig) => {
   ): Promise<unknown> => {
     const url = new URL(`${baseUrl}${path}`);
     if (includeKeyInQuery) url.searchParams.set("api_key", config.apiKey);
-    const response = await fetcher(url, init);
+    const response = await fetcher(url, {
+      ...init,
+      signal: init?.signal ?? AbortSignal.timeout(config.timeoutMs ?? 30000),
+    });
     const text = await response.text();
     let payload: unknown = {};
     try {

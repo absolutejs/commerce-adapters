@@ -48,6 +48,13 @@ describe("CustomCat fulfillment", () => {
     const catalogProduct = {
       catalog_product_id: 101,
       category: "Digisoft",
+      images: [
+        {
+          color: "Black",
+          image_url: "https://cdn.customcat.com/catalog/101-black.jpg",
+          view: "front",
+        },
+      ],
       product_type: "T-Shirts",
       title: "Everyday Tee",
       variants: [
@@ -79,6 +86,18 @@ describe("CustomCat fulfillment", () => {
     expect(page.items[0]).toMatchObject({
       product: {
         externalId: "101",
+        media: [
+          {
+            color: "Black",
+            kind: "image",
+            licensed: true,
+            source: "supplier",
+            sourceId: "customcat",
+            url: "https://cdn.customcat.com/catalog/101-black.jpg",
+            verified: true,
+            view: "front",
+          },
+        ],
         productType: "T-Shirts",
         title: "Everyday Tee",
       },
@@ -154,6 +173,80 @@ describe("CustomCat fulfillment", () => {
       "Tee Camp Mug",
     ]);
     expect(nextPage.nextCursor).toBeUndefined();
+  });
+
+  it("normalizes CustomCat's current product_colors and catalog_sku_id shape", async () => {
+    const currentCatalogProduct = {
+      catalog_product_id: 101,
+      product_colors: [
+        {
+          back_image: "//cdn.customcat.com/catalog/101-black-back.jpg",
+          color: "Black",
+          color_hex: "000000",
+          product_color_id: 201,
+          product_image: "//cdn.customcat.com/catalog/101-black-front.jpg",
+          skus: [
+            {
+              catalog_sku_id: 48146,
+              cost: "6.25",
+              in_stock: 1,
+              mrsp: "18.00",
+              pallet: [],
+              size: "Large",
+            },
+          ],
+        },
+      ],
+      product_description_bullet1: "A comfortable everyday tee.",
+      product_name: "Everyday Tee",
+    };
+    const catalog = createCustomCatCatalog({
+      apiKey: "test-key",
+      fetch: async (input) => {
+        if (String(input).includes("/catalog/sku/"))
+          return Response.json({
+            catalog_sku_id: "48146",
+            cost: "6.25",
+            in_stock: "1",
+            size: "Large",
+          });
+
+        return Response.json([currentCatalogProduct]);
+      },
+    });
+
+    const page = await catalog.listProducts({ limit: 1 });
+
+    expect(page.items[0]).toMatchObject({
+      product: {
+        category: "Digisoft",
+        description: "A comfortable everyday tee.",
+        media: [
+          {
+            color: "Black",
+            url: "https://cdn.customcat.com/catalog/101-black-front.jpg",
+            view: "front",
+          },
+          {
+            color: "Black",
+            url: "https://cdn.customcat.com/catalog/101-black-back.jpg",
+            view: "back",
+          },
+        ],
+        title: "Everyday Tee",
+      },
+      variants: [
+        {
+          available: true,
+          costCents: 625,
+          options: { Color: "Black", Size: "Large" },
+          supplierSku: "48146",
+        },
+      ],
+    });
+    await expect(catalog.getInventory(["48146"])).resolves.toEqual([
+      { available: true, sku: "48146", updatedAt: expect.any(String) },
+    ]);
   });
 
   it("normalizes provider taxonomy and browses every configured category", async () => {
@@ -481,5 +574,113 @@ describe("CustomCat fulfillment", () => {
       providerResourceId: "CC-3",
       status: "resolved",
     });
+  });
+});
+
+describe("CustomCat catalog closeouts", () => {
+  it("keeps an empty-SKU closeout unavailable without aborting the catalog page", async () => {
+    const catalog = createCustomCatCatalog({
+      apiKey: "test",
+      fetch: async () =>
+        Response.json([
+          {
+            catalog_product_id: 1760,
+            product_name: "Closeout",
+            product_colors: [{ color: "Black", skus: [] }],
+          },
+          {
+            catalog_product_id: 100,
+            product_name: "Orderable tee",
+            product_colors: [
+              {
+                color: "Navy",
+                color_hex: "003366",
+                skus: [
+                  {
+                    catalog_sku_id: 123,
+                    cost: "10.25",
+                    mrsp: "18.00",
+                    size: "M",
+                    in_stock: 1,
+                  },
+                ],
+              },
+            ],
+          },
+        ]),
+    });
+    const page = await catalog.listProducts({ limit: 250 });
+    expect(page.items).toHaveLength(2);
+    expect(page.items[0]?.product.status).toBe("archived");
+    expect(page.items[0]?.variants).toEqual([]);
+    expect(page.items[1]?.variants[0]).toMatchObject({
+      supplierSku: "123",
+      available: true,
+      costCents: 1025,
+      priceCents: 1800,
+      metadata: {
+        colorHex: "#003366",
+        colorVerified: true,
+        colorSource: "supplier",
+      },
+      options: { Color: "Navy", Size: "M" },
+    });
+  });
+  it("still rejects an explicitly malformed SKU row", async () => {
+    const catalog = createCustomCatCatalog({
+      apiKey: "test",
+      fetch: async () =>
+        Response.json([{ catalog_product_id: 10, variants: [{ size: "M" }] }]),
+    });
+    await expect(catalog.listProducts()).rejects.toThrow("no catalog SKU");
+  });
+});
+
+describe("country-aware CustomCat delivery", () => {
+  it("passes a UAE address through without inventing postal or region data", async () => {
+    let submitted: Record<string, unknown> | undefined;
+    const provider = createCustomCatFulfillment({
+      apiKey: "test-key",
+      sandbox: true,
+      fetch: async (_url, init) => {
+        submitted = JSON.parse(String(init?.body));
+        return Response.json({ ORDER_ID: "ORDER-1", status: "Pending" });
+      },
+    });
+    const input = {
+      ...order,
+      recipient: {
+        ...order.recipient,
+        country: "AE",
+        city: "Dubai",
+        state: "",
+        postalCode: "",
+      },
+    };
+    expect(validateCustomCatOrder(input).valid).toBe(true);
+    await provider.submitOrder(input);
+    expect(submitted?.shipping_country).toBe("AE");
+    expect(submitted?.shipping_zip).toBe("");
+    expect(submitted?.shipping_state).toBe("");
+  });
+  it("rejects missing US region or postal before any provider request", async () => {
+    let requests = 0;
+    const provider = createCustomCatFulfillment({
+      apiKey: "test-key",
+      fetch: async () => {
+        requests++;
+        return Response.json({});
+      },
+    });
+    for (const recipient of [
+      { ...order.recipient, state: "" },
+      { ...order.recipient, postalCode: "" },
+    ]) {
+      expect(validateCustomCatOrder({ ...order, recipient }).valid).toBe(false);
+      await expect(
+        provider.submitOrder({ ...order, recipient }),
+      ).rejects.toThrow();
+    }
+    expect(requests).toBe(0);
   });
 });

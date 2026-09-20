@@ -63,7 +63,7 @@ const records = (value: unknown, ...containerNames: string[]): JsonRecord[] => {
   return [value];
 };
 
-const booleanValue = (value: unknown, fallback = true) => {
+const booleanValue = (value: unknown, fallback: boolean | null = true) => {
   if (typeof value === "boolean") return value;
   const normalized = stringValue(value).trim().toLowerCase();
   if (["1", "true", "yes", "in stock", "instock"].includes(normalized))
@@ -84,22 +84,87 @@ const moneyCents = (value: unknown) => {
     : null;
 };
 
-const mediaFrom = (value: JsonRecord): ProductMedia[] =>
-  records(field(value, "images", "media"), "images", "media").flatMap(
-    (image, index) => {
-      const url = stringValue(field(image, "image_url", "url")).trim();
-      if (!url) return [];
+const mediaUrl = (value: unknown) => {
+  const url = stringValue(value).trim();
 
-      return [
-        {
-          color: stringValue(field(image, "color")).trim() || undefined,
-          kind: "image" as const,
-          position: index,
-          url,
-        },
-      ];
-    },
+  return url.startsWith("//") ? `https:${url}` : url;
+};
+
+const mediaFrom = (value: JsonRecord): ProductMedia[] => {
+  const nestedMedia = records(
+    field(value, "images", "media"),
+    "images",
+    "media",
+  ).map((image) => ({
+    color: stringValue(field(image, "color")).trim(),
+    url: mediaUrl(field(image, "image_url", "url")),
+    view:
+      stringValue(field(image, "view", "position", "side"))
+        .trim()
+        .toLowerCase() === "back"
+        ? ("back" as const)
+        : ("front" as const),
+  }));
+  const colors = records(
+    field(value, "product_colors", "colors"),
+    "product_colors",
+    "colors",
   );
+  const colorMedia = colors.flatMap((color) => {
+    const colorName = stringValue(field(color, "color")).trim();
+
+    return [
+      {
+        color: colorName,
+        url: mediaUrl(
+          field(color, "product_image", "front_image", "image_url", "url"),
+        ),
+        view: "front" as const,
+      },
+      {
+        color: colorName,
+        url: mediaUrl(field(color, "back_image")),
+        view: "back" as const,
+      },
+    ];
+  });
+  const directMedia =
+    nestedMedia.length > 0 || colorMedia.length > 0
+      ? []
+      : [
+          {
+            color: stringValue(field(value, "color")).trim(),
+            url: mediaUrl(
+              field(value, "product_image", "front_image", "image_url", "url"),
+            ),
+            view: "front" as const,
+          },
+          {
+            color: stringValue(field(value, "color")).trim(),
+            url: mediaUrl(field(value, "back_image")),
+            view: "back" as const,
+          },
+        ];
+
+  return [...nestedMedia, ...colorMedia, ...directMedia].flatMap(
+    ({ color, url, view }, position) =>
+      url
+        ? [
+            {
+              color: color || undefined,
+              kind: "image" as const,
+              licensed: true,
+              position,
+              source: "supplier" as const,
+              sourceId: "customcat",
+              url,
+              verified: true,
+              view,
+            },
+          ]
+        : [],
+  );
+};
 
 const variantFrom = (
   value: JsonRecord,
@@ -107,17 +172,20 @@ const variantFrom = (
   productMedia: ProductMedia[],
 ): ProductVariant => {
   const sku = stringValue(
-    field(value, "catalog_sku", "catalogSku", "sku", "id"),
+    field(value, "catalog_sku", "catalog_sku_id", "catalogSku", "sku", "id"),
   ).trim();
   if (!sku) throw new Error("CustomCat catalog variant has no catalog SKU");
   const available = booleanValue(
     field(value, "instock", "in_stock", "available"),
+    null,
   );
+  const receivedAt = new Date().toISOString();
   const color = stringValue(field(value, "color", "option1")).trim();
   const size = stringValue(field(value, "size", "option2")).trim();
 
   return {
-    available,
+    // Legacy availability is catalog eligibility; stock evidence below is explicit.
+    available: available ?? true,
     costCents: moneyCents(
       field(value, "cost", "base_cost", "wholesale_price", "price"),
     ),
@@ -126,7 +194,25 @@ const variantFrom = (
     id: `customcat:${sku}`,
     inventoryPolicy: "external",
     media: mediaFrom(value).length > 0 ? mediaFrom(value) : productMedia,
-    metadata: {},
+    metadata: {
+      supplierStock: {
+        sourceId: "customcat",
+        supplierSku: sku,
+        available,
+        observedAt: available === null ? null : receivedAt,
+        receivedAt,
+        transport: "api",
+      },
+      ...(typeof field(value, "color_hex", "hex") === "string" &&
+      /^#?[a-f0-9]{6}$/i.test(String(field(value, "color_hex", "hex")))
+        ? {
+            colorHex: `#${String(field(value, "color_hex", "hex")).replace(/^#/, "")}`,
+            colorSource: "supplier",
+            colorVerified: true,
+          }
+        : {}),
+    },
+    priceCents: moneyCents(field(value, "mrsp", "msrp", "retail_price")),
     options: {
       ...(color ? { Color: color } : {}),
       ...(size ? { Size: size } : {}),
@@ -137,7 +223,7 @@ const variantFrom = (
   };
 };
 
-const productFrom = (value: JsonRecord) => {
+const productFrom = (value: JsonRecord, fallbackCategory = "") => {
   const nested = field(value, "product");
   const source = record(nested) ? nested : value;
   const externalId = stringValue(
@@ -149,20 +235,42 @@ const productFrom = (value: JsonRecord) => {
   const title =
     stringValue(field(source, "title", "product_name", "name")).trim() ||
     `CustomCat product ${externalId}`;
-  const category = stringValue(field(source, "category")).trim();
+  const category =
+    stringValue(field(source, "category")).trim() || fallbackCategory;
   const productType = stringValue(
     field(source, "product_type", "subcategory", "type"),
   ).trim();
   const media = mediaFrom(source);
-  const variantRecords = records(
+  const directVariantRecords = records(
     field(source, "variants", "skus", "items"),
     "variants",
     "skus",
     "items",
   );
-  const variants = (variantRecords.length > 0 ? variantRecords : [source]).map(
-    (variant) => variantFrom(variant, productId, media),
+  const colorVariantRecords = records(
+    field(source, "product_colors", "colors"),
+    "product_colors",
+    "colors",
+  ).flatMap((color) =>
+    records(
+      field(color, "skus", "variants", "items"),
+      "skus",
+      "variants",
+      "items",
+    ).map((variant) => ({ ...color, ...variant })),
   );
+  const variantRecords =
+    directVariantRecords.length > 0
+      ? directVariantRecords
+      : colorVariantRecords;
+  // A closeout may still expose colors/photos after its last orderable SKU
+  // disappears. Preserve that product as archived, without inventing a SKU.
+  const hasDirectSku = Boolean(
+    field(source, "catalog_sku", "catalog_sku_id", "catalogSku", "sku"),
+  );
+  const variants = (
+    variantRecords.length > 0 ? variantRecords : hasDirectSku ? [source] : []
+  ).map((variant) => variantFrom(variant, productId, media));
   const optionNames = Array.from(
     new Set(variants.flatMap((variant) => Object.keys(variant.options))),
   );
@@ -171,7 +279,16 @@ const productFrom = (value: JsonRecord) => {
     brand: stringValue(field(source, "brand", "manufacturer")).trim(),
     category,
     decorationAreas: [],
-    description: stringValue(field(source, "description")).trim(),
+    description:
+      stringValue(field(source, "description")).trim() ||
+      [1, 2, 3, 4, 5]
+        .map((index) =>
+          stringValue(
+            field(source, `product_description_bullet${index}`),
+          ).trim(),
+        )
+        .filter(Boolean)
+        .join(" "),
     externalId,
     id: productId,
     media,
@@ -183,7 +300,7 @@ const productFrom = (value: JsonRecord) => {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, ""),
     sourceId: "customcat",
-    status: "active",
+    status: variants.length > 0 ? "active" : "archived",
     styleCode: externalId,
     tags: [category, productType].filter(Boolean),
     title,
@@ -300,7 +417,9 @@ export const createCustomCatCatalog = (
     });
     const payload = await request(`/catalog?${query}`, undefined, true);
 
-    return records(payload, "products", "catalog", "data").map(productFrom);
+    return records(payload, "products", "catalog", "data").map((product) =>
+      productFrom(product, category),
+    );
   };
   const shippingMethods = async (
     order: FulfillmentShippingMethodRequest,
@@ -346,22 +465,66 @@ export const createCustomCatCatalog = (
     );
     const [candidate] = records(payload, "products", "catalog", "data");
     if (!candidate) throw new Error(`CustomCat catalog SKU not found: ${sku}`);
-    const normalized = productFrom(candidate);
-    const variant = normalized.variants.find(
-      ({ supplierSku }) => supplierSku === sku,
-    );
+    const externalId = stringValue(
+      field(candidate, "catalog_product_id", "product_id", "id", "style_id"),
+    ).trim();
+    const normalized = externalId ? productFrom(candidate) : null;
+    const variant = normalized
+      ? normalized.variants.find(({ supplierSku }) => supplierSku === sku)
+      : variantFrom(candidate, `customcat:sku:${sku}`, []);
     if (!variant) throw new Error(`CustomCat catalog SKU not found: ${sku}`);
 
-    return { ...normalized, variant };
+    return { variant };
   };
 
   return {
+    getProductInventory: async (
+      externalId: string,
+    ): Promise<InventoryLevel[]> => {
+      const payload = await request(
+        `/catalog/${encodeURIComponent(externalId)}`,
+        undefined,
+        true,
+      );
+      const items = records(payload, "products", "catalog", "data");
+      const item = items
+        .map((value) => productFrom(value))
+        .find((value) => value.product.externalId === externalId);
+      if (!item) throw new Error("CustomCat product inventory not found");
+      return item.variants.flatMap((variant) => {
+        const stock = variant.metadata.supplierStock as {
+          available: boolean | null;
+          observedAt: string | null;
+        };
+        return stock.available === null
+          ? []
+          : [
+              {
+                sku: variant.supplierSku!,
+                available: stock.available,
+                updatedAt: stock.observedAt ?? undefined,
+              },
+            ];
+      });
+    },
     getInventory: async (skus): Promise<InventoryLevel[]> =>
       Promise.all(
         skus.map(async (sku) => {
           const { variant } = await getSku(sku);
 
-          return { available: variant.available, sku };
+          const stock = variant.metadata.supplierStock as {
+            available: boolean | null;
+            observedAt: string | null;
+          };
+          if (stock.available === null)
+            throw new Error(
+              `CustomCat supplied no stock observation for SKU: ${sku}`,
+            );
+          return {
+            available: stock.available,
+            sku,
+            updatedAt: stock.observedAt ?? undefined,
+          };
         }),
       ),
     getProduct: async (externalId) => {

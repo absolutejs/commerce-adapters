@@ -40,3 +40,12 @@ production orders.
 API keys are merchant scoped. Multi-tenant platforms should resolve the key
 from their secret store per fulfillment account; never persist keys in catalog
 or fulfillment settings JSON.
+
+Catalog synchronization preserves closeouts with no orderable SKUs as archived products with zero variants. Supplier color hex values and retail prices are retained when present; no SKU, price, stock, or decoration calibration is fabricated.
+
+`getProductInventory(externalId)` returns stock for every SKU of one product in
+one request. Use it with commerce's `refreshCatalogInventory` for efficient,
+bounded background refreshes. `getInventory(skus)` remains available for targeted
+SKU lookups. Missing stock fields are not converted into positive observations;
+stock results include the time the API response was received. HTTP requests have
+a configurable `timeoutMs` (30 seconds by default).
