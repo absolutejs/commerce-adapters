@@ -38,6 +38,10 @@ export type CustomCatCatalogProvider = CatalogSourceProvider &
   FulfillmentCostQuoteProvider &
   FulfillmentShippingMethodProvider & {
     listTaxonomy(): Promise<CatalogTaxon[]>;
+    getProductInventory(externalId: string): Promise<InventoryLevel[]>;
+    getCatalogInventory(): Promise<
+      { externalId: string; levels: InventoryLevel[] }[]
+    >;
   };
 
 const normalizedKey = (value: string) =>
@@ -478,6 +482,46 @@ export const createCustomCatCatalog = (
   };
 
   return {
+    // Product-detail responses omit discontinued variants. The full catalog
+    // includes their explicit zero-stock observations and is bounded/paginated.
+    getCatalogInventory: async () => {
+      const snapshot: { externalId: string; levels: InventoryLevel[] }[] = [];
+      for (const category of await categories()) {
+        for (let pageNumber = 1; ; pageNumber++) {
+          const page = await catalogPage(
+            category,
+            pageNumber,
+            MAX_CATALOG_LIMIT,
+          );
+          for (const item of page) {
+            snapshot.push({
+              externalId: item.product.externalId!,
+              levels: item.variants.flatMap((variant) => {
+                const stock = variant.metadata.supplierStock as {
+                  available: boolean | null;
+                  observedAt: string | null;
+                };
+                return stock.available === null
+                  ? []
+                  : [
+                      {
+                        sku: variant.supplierSku!,
+                        available: stock.available,
+                        updatedAt: stock.observedAt ?? undefined,
+                      },
+                    ];
+              }),
+            });
+          }
+          if (page.length < MAX_CATALOG_LIMIT) break;
+          if (pageNumber >= MAX_CATALOG_SEARCH_PAGES)
+            throw new Error(
+              "CustomCat inventory exceeded its defensive page limit",
+            );
+        }
+      }
+      return snapshot;
+    },
     getProductInventory: async (
       externalId: string,
     ): Promise<InventoryLevel[]> => {

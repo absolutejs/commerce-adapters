@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/commerce-customcat",
-  "version": "0.6.20-beta.5",
+  "version": "0.6.20-beta.6",
   "description": "CustomCat print-on-demand fulfillment adapter for @absolutejs/commerce",
   "repository": {
     "type": "git",

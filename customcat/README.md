@@ -49,3 +49,7 @@ bounded background refreshes. `getInventory(skus)` remains available for targete
 SKU lookups. Missing stock fields are not converted into positive observations;
 stock results include the time the API response was received. HTTP requests have
 a configurable `timeoutMs` (30 seconds by default).
+
+### Complete inventory refresh
+
+`getCatalogInventory()` reads a fresh, paginated catalog snapshot. Unlike product-detail lookups, this includes discontinued variants with explicit zero stock. Unknown stock remains unknown. Commerce 0.40.1-beta.56 or later uses this snapshot once per refresh; earlier runners keep their existing per-product behavior.

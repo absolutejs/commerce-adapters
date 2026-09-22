@@ -65,3 +65,69 @@ it("fetches all product variants with one request and excludes unknown observati
   ]);
   expect(count).toBe(1);
 });
+
+it("reads discontinued zero-stock variants from a fresh paginated catalog snapshot", async () => {
+  const calls: number[] = [];
+  const source = createCustomCatCatalog({
+    apiKey: "fixture",
+    fetch: async (input) => {
+      const url = new URL(String(input));
+      expect(url.pathname).toEndWith("/catalog");
+      expect(url.searchParams.get("limit")).toBe("250");
+      const page = Number(url.searchParams.get("page"));
+      calls.push(page);
+      return Response.json(
+        page === 1
+          ? Array.from({ length: 250 }, (_, index) => ({
+              catalog_product_id: index + 1,
+              variants: [{ catalog_sku: `S${index}`, in_stock: 1 }],
+            }))
+          : [
+              {
+                catalog_product_id: 999,
+                variants: [
+                  {
+                    catalog_sku: "retired",
+                    status: "discontinued",
+                    in_stock: "0",
+                  },
+                  { catalog_sku: "unknown" },
+                  { catalog_sku: "dup", in_stock: 1 },
+                  { catalog_sku: "dup", in_stock: 0 },
+                ],
+              },
+            ],
+      );
+    },
+  });
+  const snapshot = await source.getCatalogInventory();
+  expect(calls).toEqual([1, 2]);
+  expect(snapshot).toHaveLength(251);
+  expect(snapshot.at(-1)?.levels).toEqual([
+    expect.objectContaining({
+      sku: "retired",
+      available: false,
+      updatedAt: expect.any(String),
+    }),
+    expect.objectContaining({ sku: "dup", available: true }),
+    expect.objectContaining({ sku: "dup", available: false }),
+  ]);
+  await source.getCatalogInventory();
+  expect(calls).toEqual([1, 2, 1, 2]);
+});
+it("does not return an incomplete inventory snapshot if a later category fails", async () => {
+  const source = createCustomCatCatalog({
+    apiKey: "fixture",
+    categories: ["Digisoft", "Other"],
+    fetch: async (input) =>
+      new URL(String(input)).searchParams.get("category") === "Other"
+        ? new Response("failed", { status: 503 })
+        : Response.json([
+            {
+              catalog_product_id: 1,
+              variants: [{ catalog_sku: "S", in_stock: 1 }],
+            },
+          ]),
+  });
+  await expect(source.getCatalogInventory()).rejects.toThrow();
+});
