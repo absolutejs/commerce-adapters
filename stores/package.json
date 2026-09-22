@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/commerce-stores",
-  "version": "0.4.0-beta.3",
+  "version": "0.4.0-beta.4",
   "description": "Reusable store policies, themes, releases, earnings and exact-media previews for AbsoluteJS commerce",
   "type": "module",
   "main": "./dist/index.js",
