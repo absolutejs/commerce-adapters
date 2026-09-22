@@ -1,0 +1,41 @@
+{
+  "name": "@absolutejs/commerce-stores",
+  "version": "0.4.0-beta.3",
+  "description": "Reusable store policies, themes, releases, earnings and exact-media previews for AbsoluteJS commerce",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "Apache-2.0",
+  "author": "Alex Kahn",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/absolutejs/commerce-adapters.git",
+    "directory": "stores"
+  },
+  "peerDependencies": {
+    "@absolutejs/commerce": ">=0.40.1-beta.53 <0.41"
+  },
+  "devDependencies": {
+    "@absolutejs/commerce": "0.40.1-beta.53",
+    "@types/bun": "^1.4.0",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "build": "bun build src/index.ts --outdir dist --target bun --external @absolutejs/commerce && tsc --emitDeclarationOnly",
+    "check:package": "bun run typecheck && bun run test && bun run build",
+    "prepublishOnly": "bun run check:package"
+  }
+}
