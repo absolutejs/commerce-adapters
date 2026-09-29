@@ -25,6 +25,8 @@ export {
   encodeStitchProgram,
   isStitchFormat,
 } from "./stitch";
+export type { StitchPreviewOptions } from "./preview";
+export { PREVIEW_THREAD_COLORS, stitchProgramSvg } from "./preview";
 export {
   MIME_BY_FORMAT,
   convertMachineFile,

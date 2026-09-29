@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/commerce-machines",
-  "version": "0.3.0-beta.1",
+  "version": "0.3.0-beta.2",
   "description": "Machine registry (embroidery, DTG, DTF, sublimation, vinyl, laser, label, heat press), DST/EXP/PES/JEF stitch codecs, send-to-machine transports (folder, raw TCP 9100, IPP, PrintNode, shop bridge) and machine run telemetry (production reports, Zebra alerts, SNMP traps, RIP webhooks) for @absolutejs/commerce",
   "repository": {
     "type": "git",
