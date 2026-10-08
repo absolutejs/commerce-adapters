@@ -40,3 +40,5 @@ export const createResendEmailProvider = (
     },
   };
 };
+
+export * from "./strict";
