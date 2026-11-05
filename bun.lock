@@ -26,20 +26,20 @@
     },
     "customcat": {
       "name": "@absolutejs/commerce-customcat",
-      "version": "0.6.20-beta.4",
+      "version": "0.6.20-beta.6",
       "dependencies": {
         "@absolutejs/manifest": "0.9.0",
         "@sinclair/typebox": "0.34.52",
       },
       "devDependencies": {
-        "@absolutejs/commerce": "0.40.1-beta.53",
+        "@absolutejs/commerce": "0.40.1-beta.55",
         "@absolutejs/execution": "0.14.6",
         "@types/bun": "1.3.14",
         "prettier": "3.9.6",
         "typescript": "5.9.3",
       },
       "peerDependencies": {
-        "@absolutejs/commerce": ">=0.40.1-beta.53 <0.41",
+        "@absolutejs/commerce": ">=0.40.1-beta.55 <0.41",
         "@absolutejs/execution": ">=0.14.6 <0.15",
       },
     },
@@ -63,7 +63,7 @@
     },
     "machines": {
       "name": "@absolutejs/commerce-machines",
-      "version": "0.3.0-beta.1",
+      "version": "0.3.0-beta.2",
       "dependencies": {
         "@absolutejs/manifest": "0.9.0",
         "@sinclair/typebox": "0.34.52",
@@ -115,7 +115,7 @@
     },
     "stripe": {
       "name": "@absolutejs/commerce-stripe",
-      "version": "0.25.1-beta.11",
+      "version": "0.25.1-beta.12",
       "dependencies": {
         "@absolutejs/manifest": "0.9.0",
         "@sinclair/typebox": "0.34.52",
@@ -139,7 +139,7 @@
 
     "@absolutejs/auth": ["@absolutejs/auth@0.74.0", "", { "dependencies": { "@absolutejs/linked-providers": "0.0.6", "@absolutejs/manifest": "^0.10.0", "@neondatabase/serverless": "1.0.0", "@opentelemetry/api": "1.9.1", "@simplewebauthn/browser": "13.3.0", "citra": "0.29.13", "typebox": "^1.3.16" }, "peerDependencies": { "@node-saml/node-saml": ">=5.1.0 <6", "@simplewebauthn/server": ">=13.3.2 <14", "drizzle-orm": ">=1.0.0-rc.4 <2", "elysia": "^2.0.0-beta.6", "react": ">=18 <20", "solid-js": ">=1.9.14 <2", "svelte": ">=5.56.7 <6", "vue": ">=3.5.40 <4" }, "optionalPeers": ["@node-saml/node-saml", "@simplewebauthn/server", "react", "solid-js", "svelte", "vue"], "bin": { "absolute-auth": "dist/cli/migrate.js" } }, "sha512-ZghJ5ajJTJLtfiFPhtFYHPl1XIUIyxmBDQHQq+Gw+Nmh3XAZp5YnoFrTDGUh+WknsWfpsoUAs/xmlkLJx+N9wQ=="],
 
-    "@absolutejs/commerce": ["@absolutejs/commerce@0.40.1-beta.53", "", { "dependencies": { "@absolutejs/handoff": "0.1.0", "@absolutejs/manifest": "0.7.2", "@sinclair/typebox": "0.34.52", "fflate": "0.8.3" }, "peerDependencies": { "@react-three/drei": ">=10.7.7 <11", "@react-three/fiber": ">=9.6.1 <10", "drizzle-orm": ">=1.0.0-rc.4 <2", "react": ">=18 <20", "three": ">=0.185.0 <0.186.0" }, "optionalPeers": ["@react-three/drei", "@react-three/fiber", "drizzle-orm", "react", "three"] }, "sha512-ao/6htWQSUvB7q1oYiG+Rt9zbh6bKi1Teme9k5qgrYW+e9x0BTx8WO4EMRaeg+93O1nMLNU/szNdIBvCePcPXg=="],
+    "@absolutejs/commerce": ["@absolutejs/commerce@0.40.1-beta.55", "", { "dependencies": { "@absolutejs/handoff": "0.1.0", "@absolutejs/manifest": "0.7.2", "@sinclair/typebox": "0.34.52", "fflate": "0.8.3" }, "peerDependencies": { "@react-three/drei": ">=10.7.7 <11", "@react-three/fiber": ">=9.6.1 <10", "drizzle-orm": ">=1.0.0-rc.4 <2", "react": ">=18 <20", "three": ">=0.185.0 <0.186.0" }, "optionalPeers": ["@react-three/drei", "@react-three/fiber", "drizzle-orm", "react", "three"] }, "sha512-gGlvTtMFPnD5aSSSW0eet/RzGgfZsZDH/z7OjkOG/L+P1OQnKY6QNxiAtSBkC83OIZOJFozpY/NfL0Z+pG/mmw=="],
 
     "@absolutejs/commerce-customcat": ["@absolutejs/commerce-customcat@workspace:customcat"],
 
