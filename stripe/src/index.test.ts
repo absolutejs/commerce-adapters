@@ -166,3 +166,32 @@ describe("Stripe dispute evidence", () => {
     });
   });
 });
+
+test("checkout uses the host HTTP client and preserves the idempotency key", async () => {
+  let destination = "",
+    key = "";
+  const payment = createStripePayment({
+    secretKey: "sk_test_synthetic",
+    webhookSecret: "whsec_synthetic",
+    httpClient: Stripe.createFetchHttpClient(async (input, init) => {
+      destination = String(input);
+      key = new Headers(init?.headers).get("idempotency-key") ?? "";
+      return Response.json({
+        id: "cs_synthetic",
+        url: "https://checkout.stripe.com/c/pay/cs_synthetic",
+        client_secret: null,
+      });
+    }),
+  });
+  const checkout = await payment.createCheckout({
+    uiMode: "hosted",
+    idempotencyKey: "purchase-synthetic",
+    lineItems: [{ name: "Credits", amountCents: 1000, quantity: 1 }],
+    successUrl: "https://example.com/success",
+    cancelUrl: "https://example.com/cancel",
+    automaticTax: false,
+  });
+  expect(new URL(destination).hostname).toBe("api.stripe.com");
+  expect(key).toBe("purchase-synthetic");
+  expect(checkout.id).toBe("cs_synthetic");
+});

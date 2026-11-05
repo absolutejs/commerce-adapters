@@ -55,3 +55,8 @@ deciding whether the stable-idempotency submission may be retried.
 ## License
 
 Apache-2.0.
+
+Hosts can pass `httpClient: Stripe.createFetchHttpClient(guardedFetch)` to both
+`createStripePayment` and `createStripeWebhookEndpointManager`. This keeps Stripe
+requests behind the host's outbound network policy without replacing checkout,
+webhook verification, or stable provider idempotency handling.

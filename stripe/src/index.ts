@@ -16,6 +16,10 @@ import type {
 import Stripe from "stripe";
 
 export type StripeConfig = {
+  /** Host-owned HTTP transport, e.g. an egress-policy-backed fetch client. */
+  httpClient?: NonNullable<
+    ConstructorParameters<typeof Stripe>[1]
+  >["httpClient"];
   onWebhookSecretVerified?: (index: number) => Promise<void> | void;
   secretKey: string;
   webhookSecret?: string;
@@ -93,9 +97,14 @@ const stripeWebhookEndpoint = (
 };
 
 export const createStripeWebhookEndpointManager = (config: {
+  httpClient?: NonNullable<
+    ConstructorParameters<typeof Stripe>[1]
+  >["httpClient"];
   secretKey: string;
 }): PaymentWebhookEndpointManager => {
-  const stripe = new Stripe(config.secretKey);
+  const stripe = new Stripe(config.secretKey, {
+    httpClient: config.httpClient,
+  });
 
   return {
     async create(input) {
@@ -309,7 +318,9 @@ const toAddress = (
 
 /** Build a `PaymentProvider` backed by Stripe (stripe-node, Basil API). */
 export const createStripePayment = (config: StripeConfig): PaymentProvider => {
-  const stripe = new Stripe(config.secretKey);
+  const stripe = new Stripe(config.secretKey, {
+    httpClient: config.httpClient,
+  });
   const webhookSecrets = stripeWebhookSecrets(config);
 
   const normalizeSession = async (
