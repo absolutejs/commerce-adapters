@@ -195,3 +195,32 @@ test("checkout uses the host HTTP client and preserves the idempotency key", asy
   expect(key).toBe("purchase-synthetic");
   expect(checkout.id).toBe("cs_synthetic");
 });
+
+test("elements checkout asks Stripe for ui_mode elements with a return URL", async () => {
+  let body = "";
+  const payment = createStripePayment({
+    secretKey: "sk_test_synthetic",
+    webhookSecret: "whsec_synthetic",
+    httpClient: Stripe.createFetchHttpClient(async (_input, init) => {
+      body = String(init?.body ?? "");
+      return Response.json({
+        id: "cs_elements",
+        url: null,
+        client_secret: "cs_elements_secret_synthetic",
+      });
+    }),
+  });
+  const checkout = await payment.createCheckout({
+    uiMode: "elements",
+    lineItems: [{ name: "Tee", amountCents: 2500, quantity: 2 }],
+    returnUrl: "https://example.com/return?session_id={CHECKOUT_SESSION_ID}",
+    automaticTax: false,
+  });
+  const params = new URLSearchParams(body);
+  expect(params.get("ui_mode")).toBe("elements");
+  expect(params.get("return_url")).toBe(
+    "https://example.com/return?session_id={CHECKOUT_SESSION_ID}",
+  );
+  expect(params.get("success_url")).toBeNull();
+  expect(checkout.clientSecret).toBe("cs_elements_secret_synthetic");
+});

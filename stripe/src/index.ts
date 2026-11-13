@@ -439,10 +439,17 @@ export const createStripePayment = (config: StripeConfig): PaymentProvider => {
         ],
       };
 
-    const uiParams: Stripe.Checkout.SessionCreateParams =
-      input.uiMode === "embedded"
-        ? { return_url: input.returnUrl, ui_mode: "embedded_page" }
-        : { cancel_url: input.cancelUrl, success_url: input.successUrl };
+    // `elements`: the host lays the page out itself with Stripe's UI
+    // components (Checkout Session + Elements) and confirms from its own
+    // Pay button; `embedded`: Stripe's whole page in a frame.
+    let uiParams: Stripe.Checkout.SessionCreateParams = {
+      cancel_url: input.cancelUrl,
+      success_url: input.successUrl,
+    };
+    if (input.uiMode === "embedded")
+      uiParams = { return_url: input.returnUrl, ui_mode: "embedded_page" };
+    if (input.uiMode === "elements")
+      uiParams = { return_url: input.returnUrl, ui_mode: "elements" };
 
     // Stripe reads the place of supply off the Customer when the page
     // collects no address of its own, so a known destination has to become
